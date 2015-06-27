@@ -1,0 +1,87 @@
+//Ubicacion de los OBJ
+
+makepath[.OBJ] =  G:\ProyecFW\CgeH\OBJ
+
+//Ubicacion de los PRG
+
+makepath[.PRG] =  G:\ProyecFW\CgeH\Fuentes;G:\ProyecFW\CgeH\Fuentes
+
+//Ubicacion de los LIB
+
+makepath[.LIB] =  G:\ProyecFW\MiLib\LIB;G:\HARBOUR\LIB;C:\bcc55\bin
+
+//Ubicacion de los LNK
+
+makepath[.LNK] =  G:\ProyecFW\CgeH
+
+//Ubicacion de los CH
+
+makepath[.CH] = G:\ProyecFW\INCLUDE;\BCC55\INCLUDE;G:\HARBOUR\INCLUDE
+
+//Regla de Compilaci¢n
+
+.PRG.OBJ:
+     G:\HARBOUR\BIN\HARBOUR $* /m /n /w /es2 /oG:\ProyecFW\CgeH\OBJ\$*.C
+     C:\BCC55\BIN\BCC32 -c -IG:\HARBOUR\INCLUDE -oG:\ProyecFW\CgeH\OBJ\$*.OBJ \ProyecFW\CgeH\OBJ\$*.C
+
+// Modulos a compilar.
+
+PDL.OBJ:         G:\ProyecFW\CgeH\Fuentes\PDL.PRG
+PDLTIPOS.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLTIPOS.PRG
+PDLDBASE.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLDBASE.PRG
+PDLNITS.OBJ:     G:\ProyecFW\CgeH\Fuentes\PDLNITS.PRG
+PDLBANCO.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLBANCO.PRG
+PDLCATEG.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLCATEG.PRG
+PDLCODIG.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLCODIG.PRG
+PDLVENTA.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLVENTA.PRG
+PDLLIFAC.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLLIFAC.PRG
+PDLREGIS.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLREGIS.PRG
+PDLRECAU.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLRECAU.PRG
+PDLCOREM.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLCOREM.PRG
+PDLFACTU.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLFACTU.PRG
+PDLLICOM.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLLICOM.PRG
+PDLLIPED.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLLIPED.PRG
+PDLLISAL.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLLISAL.PRG
+PDLLIVED.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLLIVED.PRG
+PDLLIVET.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLLIVET.PRG
+PDLLIEXT.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLLIEXT.PRG
+PINAJUST.OBJ:    G:\ProyecFW\CgeH\Fuentes\PINAJUST.PRG
+PINAJUES.OBJ:    G:\ProyecFW\CgeH\Fuentes\PINAJUES.PRG
+PININART.OBJ:    G:\ProyecFW\CgeH\Fuentes\PININART.PRG
+PINLIART.OBJ:    G:\ProyecFW\CgeH\Fuentes\PINLIART.PRG
+PINLICAT.OBJ:    G:\ProyecFW\CgeH\Fuentes\PINLICAT.PRG
+PINLIRSM.OBJ:    G:\ProyecFW\CgeH\Fuentes\PINLIRSM.PRG
+CGEPUC.OBJ:      G:\ProyecFW\CgeH\Fuentes\CGEPUC.PRG
+CGEACTUA.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEACTUA.PRG
+CGEANEXO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEANEXO.PRG
+CGEBALAN.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEBALAN.PRG
+CGECUADR.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGECUADR.PRG
+CGEFNTES.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEFNTES.PRG
+CGEINFLA.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEINFLA.PRG
+CGELIAUT.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGELIAUT.PRG
+CGELIAUX.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGELIAUX.PRG
+CGELIBRO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGELIBRO.PRG
+CGELIMAY.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGELIMAY.PRG
+CGEMAYBA.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEMAYBA.PRG
+CGESOCIO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGESOCIO.PRG
+CGEVARIA.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEVARIA.PRG
+CGEMOVTO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEMOVTO.PRG
+CGELIMOV.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGELIMOV.PRG
+CGELINOT.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGELINOT.PRG
+CGESALDO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGESALDO.PRG
+CGERESUL.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGERESUL.PRG
+CGERETEN.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGERETEN.PRG
+CGEFLUJO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEFLUJO.PRG
+PDLMEDIO.OBJ:    G:\ProyecFW\CgeH\Fuentes\PDLMEDIO.PRG
+
+PDL.EXE:
+
+// Modulos a linkar.
+
+PDL.EXE: PDL.OBJ \
+
+     SET LIB=G:\ProyecFW\MiLib\LIB;G:\HARBOUR\LIB;C:\BCC55\BIN
+     C:\BCC55\BIN\ILINK32.EXE @G:\ProyecFW\CgeH\Fuentes\PDL.RSP
+
+// Compilaci¢n de recursos
+// Fin del fichero make.

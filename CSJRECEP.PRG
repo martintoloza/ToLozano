@@ -1,0 +1,569 @@
+// Programa.: CSJRECEP.PRG    >>> Martin A. Toloza Lozano <<<
+// Notas....: Modulo para la Elaboracion de Cotizaciones
+#include "Fivewin.ch"
+#include "TSBrowse.ch"
+#include "Btnget.ch"
+
+MEMVAR oApl
+
+#define CLR_PINK  nRGB( 128, 150, 150) //255, 128, 128
+#define CLR_NBLUE nRGB( 128, 128, 192)
+
+FUNCTION Cotizacion()
+   LOCAL oDlg, oLbt, oLbx, aColor[2], lNoBlink := .f.
+   LOCAL cTit, nA, oF, oNi
+If (aColor[ 1 ] := GetSysColor( COLOR_INACTIVECAPTION ) ) != ;
+   GetSysColor( COLOR_ACTIVECAPTION )
+   aColor[ 2 ] := GetSysColor( COLOR_INACTCAPTEXT )
+   lNoBlink := .t.
+   SBNoBlink()
+EndIf
+ oF  := TCotizar() ;  oF:New()
+ oNi := TPer()     ; oNi:New()
+ oF:oTP := TChq()  ; oF:oTP:NEW( 3 )
+cTit := "Recepción - Facturas || "
+oApl:oEmp:Seek( {"localiz",oApl:oEmp:TITULAR} )
+nEmpresa( .t. )
+ASIZE( oF:oG,10 )
+oF:Iniciar( ,,"A" )
+oF:AdicArray()
+DEFINE DIALOG oDlg FROM 0, 0 TO 470, 580 PIXEL;
+   TITLE cTit + oApl:cEmpresa
+   @ 16, 00 SAY "Nro. Factura" OF oDlg RIGHT PIXEL SIZE 40,10
+   @ 16, 42 BTNGET oF:oG[1] VAR oF:aM[2] OF oDlg  PICTURE "9999999999";
+      ACTION EVAL({|| If(oF:Mostrar(,,'A'), (oF:aM[2] := oF:oDb:NUMFAC,;
+                         oApl:nEmpresa := oF:oDb:EMPRESA              ,;
+                         oApl:Tipo     := oF:oDb:TIPO                 ,;
+                         oF:oG[1]:Refresh() ), ) } )                   ;
+      VALID( If( !oApl:oFac:Seek( { "empresa",oApl:nEmpresa,"numfac"  ,;
+                       oF:aM[2],"tipo",oApl:Tipo} ) .AND. oF:aM[2] # 0,;
+               ( MsgStop("Factura NO EXISTE"), .f. )                  ,;
+               (oF:AdicArray(),  oLbt:aArray := oF:aVen               ,;
+                oLbx:aArray := oF:aV, oDlg:Update(), oLbt:Refresh()   ,;
+                oLbt:DrawFooters(),                 oF:Dscto( 0,oLbx ),;
+                If( oApl:oFac:lOK, (oF:oG[1]:oJump := oLbx), ), .t. )));
+      SIZE 40,10 PIXEL UPDATE  RESOURCE "BUSCAR"
+   @ 16,110 SAY "Sgte. Factura" + STR( oF:nSigFac,8 ) OF oDlg PIXEL SIZE 70,10;
+      UPDATE COLOR nRGB( 255,0,0 )
+   @ 16,172 SAY "Fecha [DD.MM.AA]" OF oDlg RIGHT PIXEL SIZE 60,10
+   @ 16,236 GET oF:oG[2] VAR oApl:oFac:FECHOY OF oDlg ;
+      MESSAGE "Fecha Factura";
+      VALID oF:Fechas( oApl:oFac:lOK,1 ) ;
+      WHEN oApl:cFecha == "SI" SIZE 40,10 PIXEL UPDATE
+   @ 28, 00 SAY "Documento ID" OF oDlg RIGHT PIXEL SIZE 40,10
+   @ 28, 42 BTNGET oF:oG[3] VAR oF:aM[3] OF oDlg                      ;
+      ACTION EVAL({|| If( oNi:Mostrar( ,,oF:aM[3]), (oF:aM[3] :=      ;
+                          oNi:oDb:DOCIDEN, oF:oG[3]:Refresh() ), ) }) ;
+      VALID EVAL( {|| If( oNi:Buscar( oF:aM[3],"dociden",.t. )       ,;
+                 (oApl:oFac:TURISTA_ID := oNi:oDb:TURISTA_ID         ,;
+                  oApl:oFac:CLIENTE    := oF:aM[4] := oNi:oDb:NOMBRES,;
+                  oDlg:Update(), .t. )                               ,;
+              (If( MsgYesNo("Desea ingresarlo","Este ID  no Existe") ,;
+                  oNi:Editar( ,.t.,,oF:aM[3] ), ),.f.) ) } )          ;
+      SIZE 60,10 PIXEL UPDATE  RESOURCE "BUSCAR"
+   @ 28,114 SAY oF:oG[4] VAR oApl:oFac:CLIENTE OF oDlg BORDER PIXEL ;
+      SIZE 162,10 UPDATE COLOR nRGB( 128,0,255 )
+   @ 40, 00 SAY "Fecha Llegada"           OF oDlg RIGHT  PIXEL SIZE 40,10
+   @ 40, 42 SAY oF:oG[5] VAR oF:aCli[1]   OF oDlg BORDER PIXEL SIZE 76,10 UPDATE
+   @ 40,172 SAY "Dias Estadia"            OF oDlg RIGHT  PIXEL SIZE 60,10
+   @ 40,236 SAY oF:oG[6] VAR oF:nDias     OF oDlg PICTURE "999,999";
+      BORDER PIXEL SIZE 42,10 UPDATE
+   @ 52, 00 SAY "Fecha Salida"            OF oDlg RIGHT  PIXEL SIZE 40,10
+   @ 52, 42 SAY oF:oG[7] VAR oF:aCli[2]   OF oDlg BORDER PIXEL SIZE 76,10 UPDATE
+   @ 52,120 SAY oF:oG[08] VAR oF:aM[7]    OF oDlg COLOR nRGB( 255,0,0 );
+      BORDER PIXEL SIZE 70,10 UPDATE
+   @ 52,182 SAY "Valor Factura"           OF oDlg RIGHT  PIXEL SIZE 50,10
+   @ 52,236 SAY oF:oG[09] VAR oF:aM[6]    OF oDlg PICTURE "999,999,999";
+      BORDER PIXEL SIZE 42,10 UPDATE
+   @ 64,172 SAY "Saldo"                   OF oDlg RIGHT PIXEL SIZE 60,10
+   @ 64,236 SAY oF:oG[10] VAR oApl:nSaldo OF oDlg PICTURE "999,999,999";
+      BORDER PIXEL SIZE 42,10 UPDATE
+
+   @ 66.0,06 BROWSE oLbt SIZE 200,58 PIXEL OF oDlg CELLED;
+      COLORS CLR_BLACK, CLR_NBLUE
+   oLbt:SetArray( oF:aVen )     // Esto es necesario para trabajar con arrays
+   oLbt:nHeightCell += 4
+   oLbt:nHeightHead += 4
+   oLbt:lNoHScroll  := .t.
+ //oLbt:lNoVScroll  := .t.
+   oLbt:bKeyDown := {|nKey| If(nKey=VK_TAB, oLbt:oJump := oF:oG[3],;
+                            If(nKey=VK_F3 , oF:oB[1]:Click() ,;
+                            If(nKey=VK_F5 , oF:oB[2]:Click() ,;
+                            If(nKey=VK_F6 , oF:oB[3]:Click() ,;
+                            If(nKey=VK_F7 , oF:oB[4]:Click() ,;
+                            If(nKey=VK_F11, oF:oB[5]:Click() , )))))) }
+   oLbt:SetAppendMode( .t. )                  // Activando Auto Append Mode
+ //oLbt:SetAppendMode( oF:lNuevo )            // Activando Auto Append Mode
+   oLbt:SetDeleteMode( .t.,.f.,{ |nAt,oLbt| oF:DelArray(oLbt) },;
+                  {|oLbt| oF:Dscto( 0,oLbt ) } ) // lOnOff, lConfirm, bDelete
+   ADD COLUMN TO BROWSE oLbt DATA ARRAY ELEMENT 1;
+       TITLE "Documento ID"+CRLF+"Acompañante"   ;
+       SIZE 100 EDITABLE;          // Esta columna es editable
+       3DLOOK TRUE, TRUE, TRUE;    // Celda, Titulo, Footers
+       MOVE DT_MOVE_DOWN;          // Cursor pasa a la Sig.Fila editable
+       VALID { |uVar| oF:Busacom( uVar,oNi ) }; // don't want empty rows
+       ALIGN DT_LEFT, DT_CENTER  ; // Celda, Titulo, Footer
+       PREEDIT {|uVar| oF:aM[11] := uVar, nA := oLbt:nAt };
+       FOOTER { || STR( oLbt:nLen,4 ) + " Items" } ;
+       WHEN oF:EditAcomp( oLbt )
+    oLbt:aColumns[1]:bPostEdit := { |uVar| oF:aVen[nA,1] := oF:aM[11],;
+               oF:aVen[nA,2] := oF:aM[12], oF:aVen[nA,3] := oF:aM[13],;
+               oF:EditAcomp( oLbt,nA ) }
+     // activando BtnGet para la columna 1 y habilitando una Ayuda
+    oLbt:SetBtnGet( 1, "Buscar", { | oGet,cVar | If( oNi:Mostrar() ,;
+        (cVar := oNi:oDb:DOCIDEN, oGet:cText( cVar ), oGet:Refresh(),;
+         oGet:KeyDown( VK_RETURN, 0 )), ) }, 16 )
+   ADD COLUMN TO BROWSE oLbt DATA ARRAY ELEMENT 2;
+       TITLE "Nombre Acompañante" ;
+       SIZE 300 ;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_LEFT, DT_CENTER
+   // Asignando Valores por defaults para nueva Fila creada con Auto Append.
+   oLbt:aDefault := { SPACE(15), SPACE(50), 0, 0 }
+   oLbt:SetColor( { 2, 6, 15 }, ;
+                  { {|| If( oLbt:nAt % 2 == 0, CLR_PINK, CLR_NBLUE ) },;
+                    { CLR_WHITE, CLR_HRED }, ; // degraded cursor
+                      CLR_GRAY } )  // grid lines color
+
+   @ 130.0,06 BROWSE oLbx SIZE 250,98 PIXEL OF oDlg CELLED;
+      COLORS CLR_BLACK, CLR_NBLUE
+   oLbx:SetArray( oF:aV )     // Esto es necesario para trabajar con arrays
+   //oLbx:nFreeze     := 1
+   //oLbx:nRowPos     := oLbx:nAt   := 4
+   //oLbx:nColPos     := oLbx:nCell := 3
+   oLbx:nHeightCell += 4
+   oLbx:nHeightHead += 4
+   oLbx:bKeyDown := {|nKey| If(nKey=VK_TAB, oLbx:oJump := oF:oG[3],;
+                            If(nKey=VK_F3 , oF:oB[1]:Click() ,;
+                            If(nKey=VK_F5 , oF:oB[2]:Click() ,;
+                            If(nKey=VK_F6 , oF:oB[3]:Click() ,;
+                            If(nKey=VK_F7 , oF:oB[4]:Click() ,;
+                            If(nKey=VK_F11, oF:oB[5]:Click() , )))))) }
+   oLbx:SetAppendMode( .f. )
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 2;
+       TITLE "Nombre Servicio" ;
+       SIZE 180 ;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_LEFT, DT_CENTER, DT_RIGHT;
+       WHEN oF:EditArray( oLbx ) ;
+       FOOTER "Totales->"
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 3;
+       TITLE "Precio"+CRLF+"Noche" PICTURE "99,999,999";
+       SIZE  74 ;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_RIGHT, DT_CENTER
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 4;
+       TITLE "No. de"+CRLF+"Noches" PICTURE "9,999" ;
+       SIZE  58 EDITABLE;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_RIGHT, DT_CENTER ;
+       POSTEDIT { |uVar| If( oLbx:lChanged, oF:Dscto( 4,oLbx,uVar ), ) } ;
+       VALID { |uVar| oF:DelArray( oLbx,4,uVar ) } ;
+       WHEN oF:EditArray( oLbx )
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 8;
+       TITLE "Precio"+CRLF+"Neto"   PICTURE "99,999,999" ;
+       SIZE  76 ;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_RIGHT, DT_CENTER, DT_RIGHT;
+       FOOTER { || TRANSFORM( oF:aM[09], "99,999,999" ) }
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 6;
+       TITLE "%"+CRLF+"Dscto."   PICTURE "999.99" ;
+       SIZE  48 EDITABLE;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_RIGHT, DT_CENTER ;
+       VALID { |uVar| If( Rango( uVar,0,100 ), .t., ;
+              (MsgStop( "El Porcentaje debe ser entre 0 y 100",">>OJO<<" ), .f.)) };
+       POSTEDIT { |uVar| If( oLbx:lChanged, oF:Dscto( 6,oLbx,uVar ), ) };
+       WHEN oF:EditArray( oLbx )
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 7;
+       TITLE "Descuento"     PICTURE "99,999,999" ;
+       SIZE  74 EDITABLE;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_RIGHT, DT_CENTER, DT_RIGHT;
+       VALID { |uVar| oF:DelArray( oLbx,7,uVar ) };
+       FOOTER { || TRANSFORM( oF:aM[08], "99,999,999" ) };
+       POSTEDIT { |uVar| If( oLbx:lChanged, oF:Dscto( 7,oLbx,uVar ), ) };
+       WHEN oF:EditArray( oLbx )
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 9;
+       TITLE "Monto"+CRLF+"I.V.A"   PICTURE "99,999,999" ;
+       SIZE  74 EDITABLE;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_RIGHT, DT_CENTER, DT_RIGHT;
+       FOOTER { || TRANSFORM( oF:aM[10], "99,999,999" ) };
+       POSTEDIT { |uVar| If( oLbx:lChanged, oF:Dscto( 0,oLbx,uVar ), ) };
+       WHEN oF:EditArray( oLbx )
+   //oLbx:aDefault := { SPACE(12), SPACE(40), 0, 1, "UN", 0, 0, 0, 0, " ", 0, .f., 1, 0, 1, "", 0 }
+   oLbx:SetColor( { 2, 6, 15 }, ;
+                  { {|| If( oLbx:nAt % 2 == 0, CLR_PINK, CLR_NBLUE ) },;
+                    { CLR_WHITE, CLR_HRED }, ; // degraded cursor
+                      CLR_GRAY } )  // grid lines color
+   ACTIVAGET( oF:oG )
+ACTIVATE DIALOG oDlg CENTERED ON INIT ;
+  ( oF:Barrecep( oDlg,oLbx,oLbt ) );
+   VALID !GetKeyState( VK_ESCAPE )
+/*
+   SetFocus( oDlg:aControls[ 4 ]:hWnd )
+*/
+If( lNoBlink, SBNoBlink( aColor[1], aColor[2] ), Nil )
+oApl:oEmp:Seek( {"empresa",oF:nOptica} )
+oF:oDb:Destroy()
+oF:oMvc:Destroy()
+oF:oMvd:Destroy()
+oF:oVen:Destroy()
+SETKEY( VK_F4,{||Empresa()} )
+nEmpresa( .f. )
+RETURN NIL
+
+/*
+DATEDIFF
+TIMEDIFF
+DATE_FORMAT(p.fecha, '%r')  04:30:00 PM
+CAST(p.fecha AS DATE) = " + xValToChar( ::aLS[1] )
+
+CREATE TABLE `cadfacte` (
+  `row_id` int(11) NOT NULL AUTO_INCREMENT,
+  `factc_id` int(11) DEFAULT NULL,
+  `fecha_ent` datetime DEFAULT NULL,
+  `fecha_sal` datetime DEFAULT NULL,
+  PRIMARY KEY (`row_id`),
+  KEY `Llegada` (`fecha_ent`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+//) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+*/
+
+//------------------------------------//
+CLASS TCotizar FROM TFactura
+
+ DATA oB            INIT ARRAY(9)
+ DATA nDias, oTP
+ METHOD AdicArray()
+ METHOD Barrecep( oDlg,oLbx,oLbt )
+ METHOD Busacom( xBuscar,oNi,nA )
+ METHOD EditAcomp( oLbt,nA,nF )
+ METHOD Guardar( oDlg,oLbx )
+ METHOD Especial( nR,lNew,lCam )
+ METHOD Borrar( nR,nT )
+ METHOD Facturar( oDlg,oLbx )
+ METHOD Listado( oDlg,oLbx )
+
+ENDCLASS
+
+//------------------------------------//
+METHOD AdicArray() CLASS TCotizar
+   LOCAL aRes, nL
+ Super:AdicArray()
+   ::aCli := {}
+   ::aVen := {}
+If ::aM[2] == 0
+   ::aM[3] := SPACE(15)
+   ::aV := {}
+   ::nDias := 0
+   aRes := Buscar( "SELECT codigo FROM cadinven WHERE linea = 'REC'","CM",,9 )
+   FOR nL := 1 TO LEN( aRes )
+      ::Buscar( aRes[nL] )
+      If ::aM[17]
+         ::aM[14] := ROUND( ::aM[13] / ::aM[18],2 )
+      Else
+         ::aM[14] := ::aM[13]
+      EndIf
+      AADD( ::aV,{ aRes[nL], ::aM[12], ::aM[13], 0       ,;
+                   ::aM[20], 0       , 0       , 0       ,;
+                   0       , " "     , 0       , ::aM[17],;
+                   ::aM[18], ::aM[14], ::aM[19], ::aM[20], 0 } )
+   NEXT nL
+   //AADD( ::aV,{ SPACE(12), SPACE(40), 0, 1, "UN", 0, 0, 0, 0, " ", 0, .f., 1, 0, 1, "", 0 } )
+Else
+   oApl:oTur:Seek( {"turista_id",oApl:oFac:TURISTA_ID} )
+   ::aM[3] := oApl:oTur:DOCIDEN
+   ::aCli := Buscar( "SELECT DATE_FORMAT(fecha_ent,'%d.%m.%Y a las %h:%i %p'), "+;
+                            "DATE_FORMAT(fecha_sal,'%d.%m.%Y a las %h:%i %p')  "+;
+                     "FROM cadfacte WHERE factc_id = " + LTRIM(STR(oApl:oFac:ROW_ID)),"CM",,8 )
+   ::aVen := Buscar( "SELECT t.dociden, t.nombres, t.turista_id, g.row_id "+;
+                     "FROM turista t, cadfactg g "        +;
+                     "WHERE g.turista_id = t.turista_id " +;
+                       "AND g.factc_id   = " + LTRIM(STR(oApl:oFac:ROW_ID)),"CM",,9 )
+EndIf
+If LEN( ::aCli ) == 0
+   ::aCli := { Buscar("SELECT DATE_FORMAT(NOW(),'%d.%m.%Y a las %h:%i %p') FROM dual","CM",,8),"" }
+EndIf
+If LEN( ::aVen ) == 0
+   AADD( ::aVen,{ SPACE(15), SPACE(50), 0, 0 } )
+EndIf
+   ::aCli[1] := NtChr( CTOD(LEFT(::aCli[1],10)),"2" ) + RIGHT(::aCli[1],15)
+   ::aCli[2] := NtChr( CTOD(LEFT(::aCli[2],10)),"2" ) + RIGHT(::aCli[2],15)
+SysRefresh()
+RETURN NIL
+
+//------------------------------------//
+METHOD Barrecep( oDlg,oLbx,oLbt ) CLASS TCotizar
+   LOCAL oBar
+DEFINE BUTTONBAR oBar OF oDlg 3DLOOK SIZE 28,28
+
+DEFINE BUTTON ::oB[5] RESOURCE "DEDISCO"   OF oBar NOBORDER ;
+   TOOLTIP "Grabar Factura [F11]" ;
+   ACTION ::Guardar( oDlg,oLbx )
+DEFINE BUTTON ::oB[1] RESOURCE "IMPRIMIR"  OF oBar NOBORDER ;
+   TOOLTIP "Imprime Factura [F3]" ;
+   ACTION ::Listado( oDlg,oLbx )
+DEFINE BUTTON ::oB[2] RESOURCE "REINDEZAR" OF oBar NOBORDER ;
+   TOOLTIP "Borrar Código [F5]"  ;
+   ACTION ( ::aM[1] := .t., oLbx:KeyDown( VK_DELETE,0 ) )
+DEFINE BUTTON ::oB[3] RESOURCE "DELREC"    OF oBar NOBORDER ;
+   TOOLTIP "Anular Factura [F6]" ;
+   ACTION ::DelFactu( oDlg,oLbx )
+DEFINE BUTTON ::oB[4] RESOURCE "NEW"       OF oBar NOBORDER ;
+   TOOLTIP "Nueva Factura [F7]"  ;
+   ACTION ::Iniciar( oDlg,oLbx ) GROUP
+DEFINE BUTTON ::oB[6] RESOURCE "MONEY"     OF oBar NOBORDER ;
+   TOOLTIP "Check UP [F8]"  ;
+   ACTION EVAL({|| If( ::oTP:Muestra(), (::aM[2] := ::oTP:oDb:NUMFAC,;
+                       ::Facturar(), __Keyboard( CHR( VK_RETURN ) ) ), ) } )
+DEFINE BUTTON ::oB[7] RESOURCE "MIRAR"     OF oBar NOBORDER ;
+   TOOLTIP "Pagos a Cartera"     ;
+   ACTION MsgInfo( "Dispobible para lo que SEA" )
+DEFINE BUTTON ::oB[8] RESOURCE "CALC"      OF oBar NOBORDER ;
+   TOOLTIP "Calculadora"         ;
+   ACTION WinExec( "Calc" )      GROUP
+DEFINE BUTTON ::oB[9] RESOURCE "SALIR"     OF oBar NOBORDER ;
+   TOOLTIP "Regresar al Menu"    ;
+   ACTION oDlg:End()
+ oBar:bRClicked := {|| NIL }
+ oBar:bLClicked := {|| NIL }
+RETURN oBar
+
+//------------------------------------//
+METHOD Busacom( xBuscar,oNi,nA ) CLASS TCotizar
+   LOCAL lOK
+If (nA := ASCAN( ::aVen, { |x| x[1] == xBuscar } )) > 0
+   MsgStop( ::aVen[nA,2],"Documento ID no puede estar 2 VECES" )
+   RETURN .f.
+EndIf
+
+If (lOK := oApl:oTur:Seek( {"dociden",xBuscar} ))
+   ::aM[11] := xBuscar
+   ::aM[12] := oApl:oTur:NOMBRES
+   ::aM[13] := oApl:oTur:TURISTA_ID
+ElseIf !EMPTY( xBuscar )
+   If MsgYesNo("Desea ingresarlo","Este ID  no Existe")
+      oNi:Editar( ,.t.,,xBuscar )
+      If oApl:oTur:DOCIDEN == xBuscar
+         ::aM[11] := xBuscar
+         ::aM[12] := oApl:oTur:NOMBRES
+         ::aM[13] := oApl:oTur:TURISTA_ID
+         lOK      := .t.
+      EndIf
+   EndIf
+   If !lOK
+      MsgStop( "Este Documento ID NO EXISTE !!!",xBuscar )
+   EndIf
+EndIf
+RETURN If( EMPTY( xBuscar ), .f., lOK )
+
+//------------------------------------//
+METHOD EditAcomp( oLbt,nA,nF ) CLASS TCotizar
+   LOCAL lEdit
+If nA == NIL
+   nA := oLbt:nAt
+   lEdit := .t.
+   If nA > LEN(::aVen)
+      nF := If( nA > 2, 1, nA-1 )
+      If EMPTY( ::aVen[nF,1] ) .OR. oLbt:nCell # 1
+         MsgStop( "Primero Digite Documento ID","Nuevo" )
+         oLbt:nAt   := oLbt:nRowPos := oLbt:nLen
+         lEdit := .f.
+      EndIf
+      If !lEdit
+         oLbt:nCell := 1
+         oLbt:HiliteCell( 1 ) ; oLbt:Refresh(.t.)
+         oLbt:DrawSelect()
+      EndIf
+   Else
+      If EMPTY( ::aVen[nA,1] ) .AND. oLbt:nCell # 1
+         MsgStop( "Primero Digite Documento ID" )
+         oLbt:nCell := 1 ; lEdit := .f.
+         oLbt:HiliteCell( 1 ) ; oLbt:Refresh()
+      EndIf
+   EndIf
+Else
+   oLbt:Refresh()
+   oLbt:DrawFooters()
+EndIf
+RETURN lEdit
+
+//------------------------------------//
+METHOD Guardar( oDlg,oLbx ) CLASS TCotizar
+   LOCAL nR, sQry
+If ::aM[09] > 0
+   FOR nR := 1 TO LEN( ::aV )
+      If ::aV[nR,04] == 0
+         ::aV[nR,10] := "*"
+      EndIf
+   NEXT nR
+    Super:Guardar( oDlg,oLbx,1 )
+   If ::aM[17]
+      sQry := "INSERT INTO cadfacte VALUES ( null, " + LTRIM(STR(oApl:oFac:ROW_ID)) +;
+              ", NOW(), null, 'P' )"
+      Guardar( sQry,"cadfacte" )
+   EndIf
+   FOR nR := 1 TO LEN( ::aVen )
+      If !EMPTY( ::aVen[nR,1] )
+         If ::aVen[nR,4] == 0
+            sQry := "INSERT INTO cadfactg VALUES ( null, " + LTRIM(STR(oApl:oFac:ROW_ID)) +;
+                    ", " + LTRIM(STR(::aVen[nR,3])) + " )"
+         Else
+            sQry := "UPDATE cadfactg SET turista_id = " + LTRIM(STR(::aVen[nR,3])) +;
+                    " WHERE row_id = " + LTRIM(STR(::aVen[nR,4]))
+         EndIf
+         Guardar( sQry,"cadfactg" )
+      EndIf
+   NEXT nR
+   ::Iniciar( oDlg,oLbx )
+EndIf
+RETURN NIL
+
+//------------------------------------//
+METHOD Especial( nR,lNew,lCam ) CLASS TCotizar
+   LOCAL aE, aEsp, aSal, nE, nCan, nEsp, nSal
+If ::oDb:CLASE == 1 .AND. ::aV[nR,16] == "M"
+   oApl:cPer:= NtChr( ::oDb:FECHA,"1" )
+   aSal := Especiales( ::aV[nR,01] )
+   nSal := LEN( aSal )
+   aE := { "INSERT INTO cadcotie VALUES ( null, "  + LTRIM(STR(::oVen:ROW_ID)) +;
+           ", " + LTRIM(STR(oApl:nEmpresa)) + ", " + LTRIM(STR(::oVen:NUMERO)) + ", ","",0 }
+   If lNew
+      FOR nE := 1 TO nSal
+         aSal[nE,2] *= ::aV[nR,4]
+         aE[2] := xValToChar(aSal[nE,1])  + ", "  + LTRIM(STR(aSal[nE,2])) + ", " +;
+                  xValToChar(aSal[nE,3])  + ", "  + LTRIM(STR(aSal[nE,4])) + ", " +;
+                  LTRIM(STR(aSal[nE,5])) + " )"
+         Guardar( aE[1] + aE[2],"cadcotie" )
+         Actualiz( aSal[nE,1],aSal[nE,2],::oDb:FECHA,2,aSal[nE,4],aSal[nE,3] )
+      NEXT nE
+   Else
+      aEsp := Buscar( { "cotid_id",::oVen:ROW_ID},"cadcotie",;
+                        "row_id, codigo, cantidad, pcosto, unidadmed",9 )
+      nEsp := LEN( aEsp )
+      If lCam
+         AEVAL( aEsp, {|a| Actualiz( a[2],-a[3],::oDb:FECHA,2,a[4],a[5] ), a[3] := 0 } )
+      EndIf
+      nCan := MIN( nEsp,nSal )
+      FOR nE := 1 TO nCan
+           aE[3]    := aSal[nE,2] * ::aV[nR,4] - aEsp[nE,3]
+         aEsp[nE,3] := aSal[nE,2] * ::aV[nR,4]
+         Actualiz( aSal[nE,1],aE[3],::oDb:FECHA,2,aSal[nE,4],aSal[nE,3] )
+         aE[2] := "UPDATE cadcotie SET codigo = " + xValToChar(aSal[nE,1]) +;
+                 ", cantidad = " + LTRIM(STR(aEsp[nE,3])) +;
+                ", unidadmed = " + xValToChar(aSal[nE,3]) +;
+                   ", pcosto = " + LTRIM(STR(aSal[nE,4])) +;
+                   ", pventa = " + LTRIM(STR(aSal[nE,5])) +;
+              " WHERE row_id = " + LTRIM(STR(aEsp[nE,1]))
+         Guardar( aE[2],"cadcotie" )
+      NEXT nE
+      If nEsp > nSal
+         FOR nE := nCan+1 TO nEsp
+            Actualiz( aEsp[nE,2],aEsp[nE,3],::oDb:FECHA,2,aEsp[nE,4],aEsp[nE,5] )
+            Guardar( "DELETE FROM cadcotie WHERE row_id = " + LTRIM(STR(aEsp[nE,1])),"cadcotie" )
+         NEXT nE
+      ElseIf nSal > nEsp
+         FOR nE := nCan+1 TO nSal
+            aSal[nE,2] *= ::aV[nR,4]
+            aE[2] := xValToChar(aSal[nE,1])  + ", "  + LTRIM(STR(aSal[nE,2])) + ", " +;
+                     xValToChar(aSal[nE,3])  + ", "  + LTRIM(STR(aSal[nE,4])) + ", " +;
+                      LTRIM(STR(aSal[nE,5])) + " )"
+            Guardar( aE[1] + aE[2],"cadcotie" )
+            Actualiz( aSal[nE,1],aSal[nE,2],::oDb:FECHA,2,aSal[nE,4],aSal[nE,3] )
+         NEXT nE
+      EndIf
+   EndIf
+   //Calcular el Precio Costo para la Minuta
+   aE[2] := "SELECT e.cantidad, e.pcosto, e.unidadmed, i.unidadmed, i.codcon "+;
+            "FROM cadinven i, cadcotie e " +;
+            "WHERE e.codigo   = i.codigo"  +;
+             " AND e.cotid_id = " + LTRIM(STR(::oVen:ROW_ID))
+   nSal := Especiales( aE[2],::aV[nR,4] )
+   If nSal # 0 .AND. nSal # ::oVen:PCOSTO
+      ::oVen:PCOSTO := nSal
+      ::oVen:Update( .f.,1 )
+   EndIf
+EndIf
+RETURN NIL
+
+METHOD Borrar( nA,nT ) CLASS TCotizar
+   LOCAL aEsp, nR
+If ::oDb:CLASE == 1
+   nT := If( nT == NIL, LEN( ::aV ), nA )
+   FOR nR := nA TO nT
+      If ::aV[nR,10] > 0 .AND. ::aV[nR,16] == "M"
+         aEsp := Buscar( { "cotid_id",::aV[nR,10] },"cadcotie",;
+                        "row_id, codigo, cantidad, pcosto, unidadmed",9 )
+         AEVAL( aEsp, {|a| Actualiz( a[2],-a[3],::oDb:FECHA,2,a[4] ) ,;
+                         Guardar( "DELETE FROM cadcotie WHERE row_id = "+;
+                                  LTRIM(STR(a[1])),"cadcotie" ) } )
+      EndIf
+   NEXT nA
+EndIf
+RETURN NIL
+
+//------------------------------------//
+METHOD Facturar() CLASS TCotizar
+   LOCAL cQry
+//cQry := "SELECT TIMESTAMPDIFF( day, e.fecha_ent, NOW() ) "+;
+//cQry := "SELECT TIMESTAMPDIFF( day, CAST(e.fecha_ent AS DATE), CURDATE() ) "+;
+cQry := "SELECT DATEDIFF( CURDATE(), CAST(e.fecha_ent AS DATE) ) "+;
+        "FROM cadfacte e, cadfactc c "                    +;
+        "WHERE c.row_id  = e.factc_id "                   +;
+         " AND c.empresa = " + LTRIM(STR(oApl:nEmpresa))  +;
+         " AND c.numfac  = " + LTRIM(STR(::aM[2]))        +;
+         " AND c.tipo    = 'A'"
+::nDias := Buscar( cQry,"CM",,8,,4 )
+::oG[1]:Refresh()
+::oG[1]:SetFocus()
+/*
+::aM[5] := "INSERT INTO cadfactd (empresa, numfac, tipo, "+;
+           "codigo, cantidad, unidadmed, precioven, "     +;
+           "despor, desmon, montoiva, ppubli, pcosto) "   +;
+           "VALUES ( "+ LTRIM(STR(oApl:nEmpresa)) + ", "  +;
+                     LTRIM(STR(oApl:oFac:NUMFAC)) + ", '" +;
+                               oApl:Tipo          + "', '"
+FOR nR := 1 TO LEN( ::aV )
+   If !EMPTY( ::aV[nR,1] )
+      Actualiz( ::aV[nR,1],::aV[nR,4],oApl:oFac:FECHOY,2,,::aV[nR,5] )
+      cQry :=      TRIM(::aV[nR,1])  + "', " + LTRIM(STR(::aV[nR,4])) +  ", '"+;
+                   TRIM(::aV[nR,5])  + "', " + LTRIM(STR(::aV[nR,8])) +  ", " +;
+              LTRIM(STR(::aV[nR,6])) +  ", " + LTRIM(STR(::aV[nR,7])) +  ", " +;
+              LTRIM(STR(::aV[nR,9])) +  ", " + LTRIM(STR(::aV[nR,3])) +  ", " +;
+              LTRIM(STR(oApl:aInvme[2]))     + " )"
+      Guardar( ::aM[5]+cQry,"cadfactd" )
+   EndIf
+NEXT
+ ContaVta( ::oMvc,::oMvd,.f.,::aCta )
+ ::Iniciar( oDlg,oLbx )
+*/
+RETURN NIL
+
+//------------------------------------//
+METHOD Listado( oDlg,oLbx ) CLASS TCotizar
+  // LOCAL nAt := AScan( oDlg:aControls, { |oCtrl| oCtrl:lPressed } )
+   LOCAL n
+FOR n := 1 TO Len( oDlg:aControls )
+   //If oDlg:aControls[ n ]:ClassName() == "BUTTON"
+      MsgInfo( oDlg:aControls[ n ]:ClassName(),n )
+      MsgInfo( oDlg:aControls[ n ]:cMsg )
+   //EndIf
+NEXT n
+/*
+If ::oDb:lOK
+   ::cVende := {"REMISION","COTIZACION"}[::oDb:CLASE]
+   CaoLiFac( {::oDb:NUMERO,::aDF[1],"",::cVende},::aV,::oDb )
+   ::Iniciar( oDlg,oLbx )
+EndIf
+*/
+RETURN NIL

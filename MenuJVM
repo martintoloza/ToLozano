@@ -1,0 +1,59 @@
+Facturación
+   Ventas          	         CaoVenta(.f.)   JVMVenta(), JVMLifac()
+   Cotizacion                    CaoVenta(.t.)   JVMC
+   Pagos                         CaoPagar(.T.)
+   Anular Pagos                  CaoPagar(.F.)
+   Factura                       CaoCoFa1()
+   Factura por Numero            CaoCoFa2()
+   Factura por Nombre            CaoCoFa3()
+   Factura por Fecha             CaoCoFa4()
+   Pagos por Nombre              CaoCoPag()
+
+Nits
+   Mantenimiento                 CaoInCli(.F.)   CAONits()
+   Consulta por Documento        CaoLiCli(1)
+   Consulta por Nombre           CaoLiCli(2)
+   Consulta por Tipo             CaoLiCli(3)
+
+Articulos
+   Mantenimiento                 CaoInCod(.T.)   JVMCodig()
+   Consulta Codigos de Articulos CaoCoInv()
+   Listar por Codigo             CaoLiPre(1)
+   Listar por Nombre             CaoLiPre(2)
+   Consulta de Saldos            InoLiRsm()
+   Listar Inventario             InoLiInv()
+
+Compras
+   Mantenimiento                 InoInArt()      JVMInart()
+   Listar Compras                InoLiArt(.f.)   JVMLiart( 1 )
+   Consultar Compras             InoLiArt(.t.)   JVMLiart( 1 )
+
+Arqueos y Ajustes
+   Ajustes                       InoAjust()
+   Ajustes Especiales            InoAjuEs()
+   Listar Ajustes                InoLiAju()
+   Arqueos                       InoArque()
+   Listar Ar&queo                InoLiArq()
+   Devolucion a Proveedor        InoDevol()
+   Listar De&voluciones          InoLiDev()
+
+
+Listados/Informes
+   Ventas Diarias                CaoLiVed()      JVMLived( 1 )
+   Flujo de Caja Diario          CaoLiRed()      JVMLived( 2 )
+   Ventas con Codigos            CaoLiVen()      JVMLived( 3 )
+   Saldos de Cartera             CaoLiSal()      JVMLisal()
+   Extracto de un Cliente        CaoLiExt()
+   Extracto de un Articulo       InoLiExt()
+   Comprobante de Diario         CaoLiNot()
+   Total venta por Cliente       CaoLiVet()
+=======================================
+Menu Principal
+	Ventas
+	Cotización
+	Consultar un Codigo
+	Notas Debito
+	Facturar
+	Arqueos y Ajustes
+	Compras
+

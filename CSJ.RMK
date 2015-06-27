@@ -1,0 +1,107 @@
+//Ubicacion de los OBJ
+
+makepath[.OBJ] = G:\ProyecFW\CgeH\OBJ
+
+//Ubicacion de los PRG
+
+makepath[.PRG] = G:\ProyecFW\CgeH\Fuentes
+
+//Ubicacion de los LIB
+
+makepath[.LIB] = G:\ProyecFW\MiLib\LIB;G:\HARBOUR\LIB;C:\BCC55\bin
+
+//Ubicacion de los LNK
+
+makepath[.LNK] = G:\ProyecFW\CgeH
+
+//Ubicacion de los CH
+
+makepath[.CH] = G:\ProyecFW\INCLUDE;C:\BCC55\INCLUDE;G:\HARBOUR\INCLUDE
+
+//Regla de Compilaci¢n
+
+.PRG.OBJ:
+     G:\HARBOUR\BIN\HARBOUR $* /m /n /w /es2 /oG:\ProyecFW\CgeH\OBJ\$*.C
+     C:\BCC55\BIN\BCC32 -c -IG:\HARBOUR\INCLUDE -oG:\ProyecFW\CgeH\OBJ\$*.OBJ \ProyecFW\CgeH\OBJ\$*.C
+
+// Modulos a compilar.
+
+CSJ.OBJ:         G:\ProyecFW\Cgeh\Fuentes\CSJ.PRG
+CAONITS.OBJ:     G:\ProyecFW\Cgeh\Fuentes\CAONITS.PRG
+CSJTURIS.OBJ:    G:\ProyecFW\Cgeh\Fuentes\CSJTURIS.PRG
+CAOLISTA.OBJ:    G:\ProyecFW\Cgeh\Fuentes\CAOLISTA.PRG
+CAOTIPOS.OBJ:    G:\ProyecFW\Cgeh\Fuentes\CAOTIPOS.PRG
+CGEPUC.OBJ:      G:\ProyecFW\CgeH\Fuentes\CGEPUC.PRG
+CGEACTUA.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEACTUA.PRG
+CGEANEXO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEANEXO.PRG
+CGEBALAN.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEBALAN.PRG
+CGECUADR.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGECUADR.PRG
+CGEFNTES.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEFNTES.PRG
+CGEINFLA.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEINFLA.PRG
+CGELIAUT.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGELIAUT.PRG
+CGELIAUX.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGELIAUX.PRG
+CGELIBRO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGELIBRO.PRG
+CGELIMAY.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGELIMAY.PRG
+CGELIMOV.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGELIMOV.PRG
+CGELINOT.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGELINOT.PRG
+CGEMAYBA.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEMAYBA.PRG
+CGEMOVTO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEMOVTO.PRG
+CGESALDO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGESALDO.PRG
+CGESOCIO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGESOCIO.PRG
+CGEVARIA.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEVARIA.PRG
+CGERESUL.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGERESUL.PRG
+CGERETEN.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGERETEN.PRG
+CGEFLUJO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEFLUJO.PRG
+CGEBANCO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEBANCO.PRG
+CGECHEQU.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGECHEQU.PRG
+CGEAYUCH.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEAYUCH.PRG
+CGEINGRE.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEINGRE.PRG
+CGEMEDIO.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEMEDIO.PRG
+CGEBASEG.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGEBASEG.PRG
+CGECTAXP.OBJ:    G:\ProyecFW\CgeH\Fuentes\CGECTAXP.PRG
+HISRIPS.OBJ:     G:\ProyecFW\Cgeh\Fuentes\HISRIPS.PRG
+CSJDBASE.OBJ:    G:\ProyecFW\Cgeh\Fuentes\CSJDBASE.PRG
+JVMACTUS.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMACTUS.PRG
+JVMCODIG.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMCODIG.PRG
+JVMCLASE.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMCLASE.PRG
+JVMLINEA.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMLINEA.PRG
+CSJVENTA.OBJ:    G:\ProyecFW\Cgeh\Fuentes\CSJVENTA.PRG
+JVMLIFAC.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMLIFAC.PRG
+CSJRECEP.OBJ:    G:\ProyecFW\Cgeh\Fuentes\CSJRECEP.PRG
+JVMFACTU.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMFACTU.PRG
+JVMDEVOL.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMDEVOL.PRG
+JVMINART.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMINART.PRG
+JVMLIART.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMLIART.PRG
+JVMLIEXT.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMLIEXT.PRG
+JVMLIVED.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMLIVED.PRG
+JVMLISAL.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMLISAL.PRG
+JVMNOTAC.OBJ:    G:\ProyecFW\Cgeh\Fuentes\JVMNOTAC.PRG
+INOAJUST.OBJ:    G:\ProyecFW\Cgeh\Fuentes\INOAJUST.PRG
+INOARQUE.OBJ:    G:\ProyecFW\Cgeh\Fuentes\INOARQUE.PRG
+INOLIEXT.OBJ:    G:\ProyecFW\Cgeh\Fuentes\INOLIEXT.PRG
+INOLISTA.OBJ:    G:\ProyecFW\Cgeh\Fuentes\INOLISTA.PRG
+INOLIRSM.OBJ:    G:\ProyecFW\Cgeh\Fuentes\INOLIRSM.PRG
+NOMCAUSA.OBJ:    G:\ProyecFW\Cgeh\Fuentes\NOMCAUSA.PRG
+NOMCIERR.OBJ:    G:\ProyecFW\Cgeh\Fuentes\NOMCIERR.PRG
+NOMCONCE.OBJ:    G:\ProyecFW\Cgeh\Fuentes\NOMCONCE.PRG
+NOMCPBTE.OBJ:    G:\ProyecFW\Cgeh\Fuentes\NOMCPBTE.PRG
+NOMEMPLE.OBJ:    G:\ProyecFW\Cgeh\Fuentes\NOMEMPLE.PRG
+NOMLIAUX.OBJ:    G:\ProyecFW\Cgeh\Fuentes\NOMLIAUX.PRG
+NOMLINOV.OBJ:    G:\ProyecFW\Cgeh\Fuentes\NOMLINOV.PRG
+NOMLIVOL.OBJ:    G:\ProyecFW\Cgeh\Fuentes\NOMLIVOL.PRG
+NOMNOVEC.OBJ:    G:\ProyecFW\Cgeh\Fuentes\NOMNOVEC.PRG
+NOMNOVED.OBJ:    G:\ProyecFW\Cgeh\Fuentes\NOMNOVED.PRG
+NOMPADES.OBJ:    G:\ProyecFW\Cgeh\Fuentes\NOMPADES.PRG
+NOMTABLA.OBJ:    G:\ProyecFW\Cgeh\Fuentes\NOMTABLA.PRG
+
+CSJ.EXE:
+
+// Modulos a linkar.
+
+CSJ.EXE: CSJ.OBJ \
+
+     SET LIB=G:\ProyecFW\MiLib\LIB;G:\HARBOUR\LIB;C:\BCC55\BIN
+     C:\BCC55\BIN\ILINK32.EXE @G:\ProyecFW\CgeH\Fuentes\CSJ.RSP
+
+// Compilaci¢n de recursos
+// Fin del fichero make.
