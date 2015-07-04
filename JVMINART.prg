@@ -935,7 +935,7 @@ If nOpc == 1
       CgeLista( ::oMvc:CONTROL,,::oFte:oDb:DESCRIPCIO )
    EndIf
 ElseIf nOpc == 2
-   InoLiArt( 1,{::oArc:FECINGRE,::oArc:FECINGRE,::aCab[1], "",.f.,;
+   InoLiArt( 1,{::oArc:FECINGRE,::oArc:FECINGRE,::aCab[1], "",1,;
                 oApl:nTFor,.t.,0,""} )
 EndIf
 RETURN NIL
