@@ -24,7 +24,7 @@ EndIf
 cTit := "Recepción - Facturas || "
 oApl:oEmp:Seek( {"localiz",oApl:oEmp:TITULAR} )
 nEmpresa( .t. )
-ASIZE( oF:oG,10 )
+ASIZE( oF:oG,11 )
 oF:Iniciar( ,,"A" )
 oF:AdicArray()
 DEFINE DIALOG oDlg FROM 0, 0 TO 470, 580 PIXEL;
@@ -65,18 +65,26 @@ DEFINE DIALOG oDlg FROM 0, 0 TO 470, 580 PIXEL;
       SIZE 162,10 UPDATE COLOR nRGB( 128,0,255 )
    @ 40, 00 SAY "Fecha Llegada"           OF oDlg RIGHT  PIXEL SIZE 40,10
    @ 40, 42 SAY oF:oG[5] VAR oF:aCli[1]   OF oDlg BORDER PIXEL SIZE 76,10 UPDATE
-   @ 40,172 SAY "Dias Estadia"            OF oDlg RIGHT  PIXEL SIZE 60,10
-   @ 40,236 SAY oF:oG[6] VAR oF:nDias     OF oDlg PICTURE "999,999";
+   @ 40,120 SAY "Nro.Noches"              OF oDlg RIGHT  PIXEL SIZE 40,10
+   @ 40,162 GET oF:oG[6] VAR oApl:oFac:PAGINAS OF oDlg PICTURE "99";
+      VALID( If( oApl:oFac:PAGINAS > 0,;
+               ( oApl:oFac:FECHAENT := oApl:oFac:FECHOY + 1,;
+                 oF:oG[7]:REFRESH(), .t. ) ,;
+               ( MsgStop( "Nro. de Noches debe ser mayor de 0" ), .f. ) ));
+      SIZE 16,10 PIXEL UPDATE
+   @ 40,182 SAY "Salida Provisional"      OF oDlg RIGHT  PIXEL SIZE 50,10
+   @ 40,236 SAY oF:oG[7] VAR oApl:oFac:FECHAENT OF oDlg ;
       BORDER PIXEL SIZE 42,10 UPDATE
+//   @ 40,236 SAY oF:oG[6] VAR oF:nDias     OF oDlg PICTURE "999,999";
    @ 52, 00 SAY "Fecha Salida"            OF oDlg RIGHT  PIXEL SIZE 40,10
-   @ 52, 42 SAY oF:oG[7] VAR oF:aCli[2]   OF oDlg BORDER PIXEL SIZE 76,10 UPDATE
-   @ 52,120 SAY oF:oG[08] VAR oF:aM[7]    OF oDlg COLOR nRGB( 255,0,0 );
+   @ 52, 42 SAY oF:oG[08] VAR oF:aCli[2]  OF oDlg BORDER PIXEL SIZE 76,10 UPDATE
+   @ 52,120 SAY oF:oG[09] VAR oF:aM[7]    OF oDlg COLOR nRGB( 255,0,0 );
       BORDER PIXEL SIZE 70,10 UPDATE
    @ 52,182 SAY "Valor Factura"           OF oDlg RIGHT  PIXEL SIZE 50,10
-   @ 52,236 SAY oF:oG[09] VAR oF:aM[6]    OF oDlg PICTURE "999,999,999";
+   @ 52,236 SAY oF:oG[10] VAR oF:aM[6]    OF oDlg PICTURE "999,999,999";
       BORDER PIXEL SIZE 42,10 UPDATE
    @ 64,172 SAY "Saldo"                   OF oDlg RIGHT PIXEL SIZE 60,10
-   @ 64,236 SAY oF:oG[10] VAR oApl:nSaldo OF oDlg PICTURE "999,999,999";
+   @ 64,236 SAY oF:oG[11] VAR oApl:nSaldo OF oDlg PICTURE "999,999,999";
       BORDER PIXEL SIZE 42,10 UPDATE
 
    @ 66.0,06 BROWSE oLbt SIZE 200,58 PIXEL OF oDlg CELLED;
@@ -266,6 +274,7 @@ If ::aM[2] == 0
    ::aM[3] := SPACE(15)
    ::aV := {}
    ::nDias := 0
+   oApl:oFac:FECHAENT := oApl:dFec + 1
    aRes := Buscar( "SELECT codigo FROM cadinven WHERE linea = 'REC'","CM",,9 )
    FOR nL := 1 TO LEN( aRes )
       ::Buscar( aRes[nL] )
@@ -293,7 +302,9 @@ Else
 EndIf
 If LEN( ::aCli ) == 0
    ::aCli := { Buscar("SELECT DATE_FORMAT(NOW(),'%d.%m.%Y a las %h:%i %p') FROM dual","CM",,8),"" }
+//SELECT DATE_FORMAT(DATE_ADD( NOW(), INTERVAL 2 DAY),'%d.%m.%Y a las %h:%i %p') FROM dual
 EndIf
+MsgInfo( LEN( ::aCli ) )
 If LEN( ::aVen ) == 0
    AADD( ::aVen,{ SPACE(15), SPACE(50), 0, 0 } )
 EndIf
