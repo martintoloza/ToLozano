@@ -1,0 +1,1667 @@
+// Programa.: CGEFACTU.PRG    >>> Martin A. Toloza Lozano <<<
+// Notas....: Modulo para la Elaboracion de las Facturas
+#include "FiveWin.ch"
+#include "TSBrowse.ch"
+#include "btnget.ch"
+#INCLUDE "Utilprn.CH"
+
+MEMVAR oApl
+
+#define CLR_PINK  nRGB( 128, 150, 150) //255, 128, 128
+#define CLR_NBLUE nRGB( 255, 255, 235)
+
+FUNCTION CgeFactu()
+   LOCAL aColor[2], aRect, nA, oDlg, oLbx, oF, oNi, lNoBlink := .f.
+If (aColor[ 1 ] := GetSysColor( COLOR_INACTIVECAPTION ) ) != ;
+   GetSysColor( COLOR_ACTIVECAPTION )
+   aColor[ 2 ] := GetSysColor( COLOR_INACTCAPTEXT )
+   lNoBlink := .t.
+   SBNoBlink()
+EndIf
+Empresa( .t. )
+ oNi := TNits()    ; oNi:New()
+ oF  := TFactura() ; oF:New()
+oApl:Tipo := LEFT(oApl:oEmp:TIPOFAC,1)
+oApl:oFac:nLimit := 200
+oF:Iniciar()
+oF:AdicArray()
+DEFINE DIALOG oDlg FROM 0, 0 TO 410,560 PIXEL TITLE "Facturación || " + oApl:cEmpresa //OF oApl:oWnd
+   @ 16, 00 SAY "Factura Nro." OF oDlg RIGHT PIXEL SIZE 40,10
+   @ 16, 42 GET oF:oG[16] VAR oApl:Tipo OF oDlg PICTURE "!"          ;
+      VALID( If( oApl:Tipo $ "AU", ( oF:nSigFac :=                   ;
+                 SgteNumero( "numfac"+oApl:Tipo,oApl:nEmpresa,.f. ) ,;
+                 oDlg:Update(), .t. )                               ,;
+               ( MsgStop( "El Tipo es [A,U]","<< OJO >>" ), .f. ) ) );
+      SIZE 08,10 PIXEL UPDATE
+   @ 16, 50 GET oF:oG[1] VAR oF:aM[1] OF oDlg PICTURE "9999999999"     ;
+      VALID( If( !oApl:oFac:Seek( { "empresa",oApl:nEmpresa,"numfac"  ,;
+                      oF:aM[1],"tipo",oApl:Tipo} ) .AND. oF:aM[1] # 0 ,;
+               ( MsgStop("Factura NO EXISTE"), .f. )                  ,;
+               ( oF:AdicArray(),  oLbx:aArray := oF:aD                ,;
+                 oF:Dscto( oDlg,oLbx ), oDlg:Update()                 ,;
+                If( oApl:oFac:lOK, (oF:oG[1]:oJump := oLbx), ), .t. )));
+      SIZE 40,10 PIXEL UPDATE
+   @ 16,100 SAY "Sgte. Factura" + STR( oF:nSigFac,6 ) OF oDlg PIXEL SIZE 70,10;
+      UPDATE COLOR nRGB( 255,0,0 )
+   @ 16,182 SAY "CLASE" OF oDlg RIGHT PIXEL SIZE 40,10
+   @ 16,226 COMBOBOX oF:oG[2] VAR oApl:oFac:CLASE ;
+      ITEMS { "Nomina","Primas","Cesantias","Prestaciones" };
+      SIZE 50,99 OF oDlg PIXEL UPDATE ;
+      ON CHANGE( If( !oApl:oFac:lOK  ,;
+                   ( oF:AdicArray(1 ), oLbx:aArray := oF:aD,;
+                     oLbx:Refresh() ), ) )
+//      WHEN !oApl:oFac:lOK
+   @ 28, 00 SAY "Fecha Factura" OF oDlg RIGHT PIXEL SIZE 40,10
+   @ 28, 42 GET oF:oG[3] VAR oApl:oFac:FECHA OF oDlg ;
+      VALID( If(oApl:oFac:lOK .AND. oApl:oFac:FECHA # oApl:oFac:XColumn(5),;
+                oF:CambiaFec( oDlg,oLbx ), ), oF:PIva( oApl:oFac:FECHA ) ) ;
+      WHEN oF:aPrv[2] SIZE 40,12 PIXEL UPDATE
+   @ 28, 84 SAY "EN Mision" OF oDlg RIGHT PIXEL SIZE 40,10
+   @ 28,126 COMBOBOX oF:oG[4] VAR oF:aM[2] ITEMS ArrayCol( oF:aCCos,1 );
+     SIZE 150,99 OF oDlg PIXEL UPDATE;
+     VALID oF:Buscar( oDlg )
+   @ 40, 00 SAY "NIT o C.C." OF oDlg RIGHT PIXEL SIZE 40,10
+   @ 40, 42 BTNGET oF:oG[20] VAR oF:aM[20] OF oDlg PICTURE "99999999999";
+      ACTION EVAL({|| If(oNi:Mostrar(), (oF:aM[20] := oNi:oDb:CODIGO   ,;
+                         oF:oG[20]:Refresh(), oF:oG[20]:lValid(.f.)),)});
+      VALID EVAL( {|| If( oNi:oDb:Seek( {"codigo",oF:aM[20]} )         ,;
+                    ( oApl:oFac:CODIGO_NIT := oApl:oNit:CODIGO_NIT     ,;
+                      oF:aM[21] := oNi:oDb:NOMBRE, oDlg:Update(), .t. ),;
+                    ( MsgStop("Este Nit no Existe"), .f. ) ) } )        ;
+      SIZE 52,10 PIXEL UPDATE  RESOURCE "BUSCAR"                        ;
+      WHEN oF:aCCos[ oF:aM[2],2 ] == "52"
+   @  40,110 SAY oF:aM[21] OF oDlg PIXEL SIZE 100,10 UPDATE COLOR nRGB( 128,0,255 )
+   @  52, 00 SAY "Fecha Inicial" OF oDlg RIGHT PIXEL SIZE 40,10
+   @  52, 42 GET oF:oG[05] VAR oApl:oFac:FECHADES OF oDlg SIZE  40,10 PIXEL UPDATE
+   @  64, 00 SAY "Fecha   Final" OF oDlg RIGHT PIXEL SIZE 40,10
+   @  64, 42 GET oF:oG[06] VAR oApl:oFac:FECHAHAS OF oDlg SIZE  40,10 PIXEL UPDATE
+   @  52, 84 SAY "Concepto"      OF oDlg RIGHT PIXEL SIZE 40,10
+   @  52,126 GET oF:oG[07] VAR oApl:oFac:CLIENTE  OF oDlg SIZE 130,10 PIXEL UPDATE
+   @  64, 84 SAY "Parafiscales"  OF oDlg RIGHT PIXEL SIZE 40,10
+   @  64,126 COMBOBOX oF:oG[8] VAR oApl:oFac:BASEP ;
+      ITEMS { "Normal","con S.Minimo","Contratista" };
+      SIZE 50,99 OF oDlg PIXEL UPDATE
+   @  64,180 SAY "% Parafiscales"   OF oDlg RIGHT PIXEL SIZE 40,10
+   @  64,222 GET oF:oG[09] VAR oApl:oFac:PARAF   OF oDlg PICTURE "999.99";
+     SIZE 25,10 PIXEL UPDATE
+   @  64,250 GET oF:oG[10] VAR oApl:oFac:PARAFAT OF oDlg PICTURE "999.99";
+     SIZE 25,10 PIXEL UPDATE
+   @  76, 00 SAY "Parafiscales"   OF oDlg RIGHT PIXEL SIZE 40,10
+   @  76, 42 SAY oF:oG[11] VAR oF:aM[5] OF oDlg PICTURE "999,999,999";
+     SIZE 40,10 PIXEL UPDATE
+   @  76,128 SAY "Administración" OF oDlg RIGHT PIXEL SIZE 40,10
+   @  76,170 SAY oF:oG[12] VAR oApl:oFac:SERADMON OF oDlg PICTURE "999,999,999";
+     SIZE 40,10 PIXEL UPDATE
+   @  76,202 SAY "I.V.A."         OF oDlg RIGHT PIXEL SIZE 30,10
+   @  76,236 SAY oF:oG[13] VAR oApl:oFac:TOTALIVA OF oDlg PICTURE "999,999,999";
+     SIZE 40,10 PIXEL UPDATE
+   @  88, 00 SAY "% I.V.A."  OF oDlg RIGHT PIXEL SIZE 40,10
+   @  88, 42 GET oF:oG[21] VAR oApl:oFac:PIVA OF oDlg PICTURE "999.99" ;
+     SIZE 25,10 PIXEL UPDATE                                           ;
+     VALID (If( oF:Buscar( "% I.V.A.",,oApl:oFac:PIVA,oF:aDF[3] )     ,;
+              ( oF:aDF[2] := oApl:oFac:PIVA, .t. ), .f. ) )
+   @  88, 68 SAY "% Dscto"   OF oDlg RIGHT PIXEL SIZE 34,10
+   @  88,104 GET oF:oG[14] VAR oF:aM[18] OF oDlg PICTURE "999.99";
+     SIZE 25,10 PIXEL UPDATE                                     ;
+     VALID (If( oF:Buscar( "% Dscto",,oF:aM[18],100 )           ,;
+              ( oF:Dscto( oDlg,oLbx ), .t. ), .f. ) )
+   @  88,170 SAY oF:oG[15] VAR oApl:oFac:TOTALDES OF oDlg PICTURE "999,999,999";
+     SIZE 40,10 PIXEL UPDATE
+   @ 100, 10 SAY oF:oG[17] VAR oF:aM[3] OF oDlg PIXEL SIZE 80,10;
+      UPDATE COLOR nRGB( 255,0,0 )
+   @ 100,118 SAY "Valor Factura"       OF oDlg RIGHT PIXEL SIZE 50,10
+   @ 100,170 SAY oF:oG[18] VAR oF:aM[4]  OF oDlg PICTURE "999,999,999";
+     SIZE 40,10 PIXEL UPDATE
+   @ 100,182 SAY "Saldo" OF oDlg RIGHT PIXEL SIZE 50,10
+   @ 100,236 SAY oF:oG[19] VAR oApl:nSaldo OF oDlg PICTURE "999,999,999";
+     SIZE 40,10 PIXEL UPDATE
+   ACTIVAGET(oF:oG)
+
+   @ 114,16 BROWSE oLbx SIZE 240,90 PIXEL OF oDlg CELLED; // CELLED  es requerida
+      COLORS CLR_BLACK, CLR_NBLUE                         // para editar Celdas
+   oLbx:SetArray( oF:aD )     // Esto es necesario para trabajar con arrays
+//   oLbx:nFreeze     := 2
+   oLbx:nHeightCell += 4
+   oLbx:nHeightHead += 4
+   oLbx:bKeyDown := {|nKey| If(nKey=VK_TAB, oLbx:oJump := oF:oG[3] ,;
+                            If(nKey=VK_F3 , oF:Listado( oDlg,oLbx ),;
+                            If(nKey=VK_F5 , oLbx:KeyDown( VK_DELETE,0 ),;
+                            If(nKey=VK_F7 , oF:Iniciar( oDlg,oLbx) ,;
+                            If(nKey=VK_F8 , oF:Abonos()            ,;
+                            If(nKey=VK_F11, oF:Guardar( oDlg,oLbx ), )))))) }
+
+   oLbx:SetAppendMode( .t. )                          // Activando Auto Append Mode
+   oLbx:SetDeleteMode( .t.,.f.,{ |nAt,oLbx| oF:DelArray(oLbx) },;
+                  {|oLbx| oF:Dscto( oDlg,oLbx ) } ) // lOnOff, lConfirm, bDelete
+
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 1;
+       TITLE "Código"+CRLF+"Concepto"            ;
+       SIZE  70 EDITABLE;
+       3DLOOK TRUE, TRUE, TRUE;    // Celda, Titulo, Footers
+       MOVE DT_MOVE_NEXT;          // Cursor pasa a la Sig.Columna editable
+       VALID { | uVar| oF:Buscar( oLbx,uVar ) }; // don't want empty rows
+       ALIGN DT_LEFT, DT_CENTER  ; // Celda, Titulo, Footer
+       PREEDIT  {|uVar| oF:aM[14] := uVar, nA := oLbx:nAt }      ;
+       POSTEDIT {|uVar| If( oLbx:lChanged .AND. oF:aM[14] # uVar,;
+                          ( oF:aD[nA,2] := PADR( oF:aM[15],40 ) ,;
+                            oF:Dscto( oDlg,oLbx ) ), ) }         ;
+       FOOTER { || STR( oLbx:nLen,4 ) + " Items" };
+       WHEN oF:EditArray( oLbx )
+
+    // activando BtnGet para la columna 1 y habilitando (Combo Browse)
+    oLbx:SetBtnGet( 1, "Buscar", { | oGet, cVar | ;
+                If( !GetKeyState( VK_ESCAPE )    ,;
+                  (aRect := GetCoors( oGet:hWnd ),;
+                   cVar  := oGet:Value()         ,;
+                   cVar  := oF:ComboBrowse( cVar,aRect[1],aRect[4],oGet:oWnd ),;
+                   oGet:cText( cVar ), oGet:Refresh(),;
+                   oGet:KeyDown( VK_RETURN, 0 ) ), ) }, 16 )
+     oLbx:aColumns[ 1 ]:cMsg := "Presione F2 o Click boton para ver la lista"
+
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 2;
+       TITLE "Descripción";
+       SIZE 280 EDITABLE;          // Esta columna es editable
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_LEFT, DT_CENTER, DT_RIGHT;
+       FOOTER "Total Factura->"
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 3;
+       TITLE "Valor"         PICTURE "99,999,999" ;
+       SIZE 100 EDITABLE;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_RIGHT, DT_CENTER, DT_RIGHT;
+       VALID { |uVar| If( uVar >= 0, .t., ;
+              (MsgStop("Valor tiene que ser Positivo","<<OJO>>"), .f.)) };
+       FOOTER { || TRANSFORM( oApl:oFac:TOTALFAC, "99,999,999" ) };
+       POSTEDIT { |uVar| If( oLbx:lChanged, oF:Dscto( oDlg,oLbx ), ) };
+       WHEN oF:EditArray( oLbx )
+   // Asignando Valores por defaults para nueva Fila creada con Auto Append.
+   oLbx:aDefault := { 4, SPACE(40), 0, 0 }
+   oLbx:SetColor( { 2, 6, 15 }, ;
+                  { {|| If( oLbx:nAt % 2 == 0, CLR_PINK, CLR_NBLUE ) },;
+                    { CLR_WHITE, CLR_HRED }, ; // degraded cursor
+                      CLR_GRAY } )  // grid lines color
+ACTIVATE DIALOG oDlg CENTER ON INIT (oF:Barra( oDlg,oLbx ))
+
+If( lNoBlink, SBNoBlink( aColor[1], aColor[2] ), Nil )
+oF:oDet:Destroy()
+oF:oMvc:Destroy()
+oF:oMvd:Destroy()
+RETURN NIL
+/*
+ALTER TABLE cadempre ADD niif TINYINT(1)  DEFAULT '0',
+                     ADD exterior INT(6)  DEFAULT 0,
+                     ADD pcre DOUBLE(5,2) DEFAULT 0
+
+ALTER TABLE cadempre ADD tregimen SMALLINT(1) DEFAULT 2
+UPDATE cadempre SET tregimen = 1 WHERE empresa = 11
+
+ALTER TABLE cgefactc ADD piva DOUBLE(5,2) DEFAULT 0
+
+UPDATE cgefactc SET piva = ROUND( (totaliva / seradmon) * 100,2 )
+WHERE totaliva > 0
+
+UPDATE cgefactc SET piva = 10
+WHERE piva  > 16
+  AND fecha <= '2006-12-31'
+
+UPDATE cgefactc SET piva = 16
+WHERE piva  > 16
+  AND fecha >= '2007-01-01'
+*/
+
+//------------------------------------//
+CLASS TFactura FROM TIMPRIME
+
+ DATA aD, aDes, aPrv, lNuevo, lIva, nSigFac
+ DATA aCCos AS ARRAY INIT {}
+ DATA aCta  AS ARRAY INIT {}
+ DATA aDF   AS ARRAY INIT { 408000,oApl:oEmp:PIVA,oApl:oEmp:PIVA,8 }
+ DATA aM    AS ARRAY INIT { 0,1,"",0,0,0,0,0,0,0,"",0,.f.,0,"",0,"",0,.f.,0,"" }
+ DATA oG             INIT ARRAY(21)
+ DATA oCen, oDet, oMvc, oMvd
+
+ METHOD NEW() Constructor
+ METHOD Iniciar( oDlg,oLbx )
+ METHOD AdicArray( nClase )
+ METHOD EditArray( oLbx )
+ METHOD Buscar( oDlg,lBus,nPor,nTope )
+ METHOD CambiaFec( oDlg,oLbx )
+ METHOD ComboBrowse( cState,nRow,nCol,oWnd )
+ METHOD DelArray( oLbx,dFec,nPago )
+ METHOD DelFactu( oDlg,oLbx )
+ METHOD Dscto( oDlg,oLbx )
+ METHOD Guardar( oDlg,oLbx )
+ METHOD Detalle( aCta,aDet )
+ METHOD Listado( oDlg,oLbx )
+ METHOD ListoWIN( aTL,lFac )
+ METHOD Abonos( oDlg,oLbx )
+ METHOD Editar( lNuevo,oLbx )
+ METHOD PIva( cPer )
+ METHOD Barra( oDlg,oLbx )
+ENDCLASS
+
+//------------------------------------//
+METHOD New() CLASS TFactura
+   LOCAL aRes, hRes, nL
+ ::oCen := oApl:Abrir( "cencosto","nombre" )
+ ::oDet := oApl:Abrir( "cgefactd","empresa, numfac, tipo",,,10 )
+ ::oMvc := oApl:Abrir( "cgemovc" ,"empresa, ano_mes, control",.t.,,5 )
+ ::oMvd := oApl:Abrir( "cgemovd" ,"empresa, ano_mes, control",.t.,,10 )
+ ::oCen:GoTop():Read()
+ ::oCen:xLoad()
+While !::oCen:Eof()
+   If !::oCen:ACTIVA
+      AADD( ::aCCos, { ::oCen:NOMBRE,::oCen:CENCOS } )
+   EndIf
+   ::oCen:Skip(1):Read()
+   ::oCen:xLoad()
+EndDo
+::aDes := { { 1, "Valor Devengado"            },;
+            { 2, "Valor Devengado PRODUCCION" },;
+            { 3, "Ayuda de Movilizacion"      },;
+            { 4, "Diferencia por pago"        },;
+            { 5, "Menos Aportes Parafiscales" } }
+aRes := "SELECT orden, nombre FROM cgcuenta "     +;
+        "WHERE empresa = " + LTRIM(STR(oApl:nPuc))+;
+         " AND fuente  = 1 AND dscto = '1'"       +;
+         " ORDER BY orden"
+hRes := If( MSQuery( oApl:oMySql:hConnect,aRes ) ,;
+            MSStoreResult( oApl:oMySql:hConnect ), 0 )
+nL   := MSNumRows( hRes )
+While nL > 0
+   aRes := MyReadRow( hRes )
+   AEVAL( aRes, { | xV,nP | aRes[nP] := MyClReadCol( hRes,nP ) } )
+   AADD( ::aDes,{ aRes[1],aRes[2] } )
+   nL --
+EndDo
+ MSFreeResult( hRes )
+/*
+INSERT INTO cgcuenta
+VALUES(NULL, 10, 6, '53053501','DESCUENTO A.I.U', 9, 0)
+*/
+aRes := "SELECT cuenta FROM cgcuenta "            +;
+        "WHERE empresa = " + LTRIM(STR(oApl:nPuc))+;
+         " AND fuente  = 6 ORDER BY orden"
+hRes := If( MSQuery( oApl:oMySql:hConnect,aRes ) ,;
+            MSStoreResult( oApl:oMySql:hConnect ), 0 )
+nL   := MSNumRows( hRes )
+While nL > 0
+   aRes := MyReadRow( hRes )
+   AADD( ::aCta, MyClReadCol( hRes,1 ) )
+   nL --
+EndDo
+MSFreeResult( hRes )
+// ::aPrv := Privileg( "FACTURAS" )
+ ::aPrv := { .t.,.t.,.t. }
+RETURN NIL
+
+//------------------------------------//
+METHOD Iniciar( oDlg,oLbx ) CLASS TFactura
+
+If !oApl:oFac:Seek( {"empresa",oApl:nEmpresa,"numfac",::aM[1],"tipo",oApl:Tipo} )
+    oApl:oFac:CLASE := If( oApl:nEmpresa == 11, 4, 1 )
+    oApl:oFac:BASEP := 1
+EndIf
+If oDlg == NIL
+   ::nSigFac := SgteNumero( "numfac"+oApl:Tipo,oApl:nEmpresa,.f. )
+// oApl:oFac:cWhere := ''
+Else
+   AEVAL( ::aM, {|xV,nI| ::aM[nI] := {"",CTOD(""),.f.,0}[AT(VALTYPE(xV),"CDLN")] } )
+   ::AdicArray() ; oLbx:aArray := ::aD
+   oDlg:Update() ; oLbx:Refresh()
+   ::oG[1]:SetFocus()
+EndIf
+RETURN .t.
+
+//------------------------------------//
+METHOD AdicArray( nClase ) CLASS TFactura
+
+If nClase == NIL
+      ::aM[18]:= 0
+   If ::aM[1] == 0
+      oApl:nSaldo := 0
+      ::lNuevo:= .t.
+      ::aM[2] := ArrayValor( ::aCCos,"02",,.t. )
+      oApl:oFac:lOK       := .f.
+      oApl:oFac:CLASE     := oApl:oFac:BASEP := 1
+      oApl:oFac:FECHA     := oApl:dFec
+      oApl:oFac:INDICADOR := "P"
+   Else
+      oApl:cPer:= NtChr( oApl:dFec,"1" )
+      oApl:lFam:= SaldoFac( ::aM[1] )
+      ::aM[2] := ArrayValor( ::aCCos,oApl:oFac:CENCOS,,.t. )
+      ::lNuevo:= !oApl:lEnLinea
+      If oApl:oFac:TOTALDES > 0
+         ::aM[18] := ROUND( oApl:oFac:TOTALDES / oApl:oFac:SERADMON * 100,2 )
+      EndIf
+   EndIf
+   ::Buscar()
+   oApl:cPer:= NtChr( oApl:oFac:FECHA,"1" )
+   ::aM[4] := oApl:oFac:TOTALFAC
+   ::PIva( oApl:cPer )
+EndIf
+::aD := {}
+::oDet:Seek( {"empresa",oApl:nEmpresa,"numfac",::aM[1],"tipo",oApl:Tipo},"codigo" )
+While !::oDet:Eof()
+   AADD( ::aD,{ ::oDet:CODIGO , ::oDet:NOMBRE  ,;
+                ::oDet:VALOR  , ::oDet:ROW_ID } )
+   ::oDet:Skip(1):Read()
+   ::oDet:xLoad()
+EndDo
+If LEN( ::aD ) == 0
+   If oApl:nEmpresa == 11
+      ::aM[3] := "Servicio de Alojamiento"
+   ElseIf oApl:oEmp:ENLINEA
+      ::aM[3] := { "Valor Devengado","Liquidacion de Prima",;
+           "Liquidacion de Cesantias","Liquidacion Definitiva"}[oApl:oFac:CLASE]
+   Else
+      ::aM[3] := "VALOR ARRIENDO"
+   EndIf
+   ::aD := { { 1, PADR( ::aM[3],40 )    , 0, 0 },;
+             { 2, PADR( ::aDes[2,2],40 ), 0, 0 },;
+             { 3, PADR( ::aDes[3,2],40 ), 0, 0 },;
+             { 4, PADR( ::aDes[4,2],40 ), 0, 0 },;
+             { 5, PADR( ::aDes[5,2],40 ), 0, 0 } }
+EndIf
+::aM[3] := { "ANULADA","PENDIENTE","CANCELADA" }[AT( oApl:oFac:INDICADOR,"APC" )]
+SysRefresh()
+RETURN NIL
+
+//------------------------------------//
+METHOD EditArray( oLbx ) CLASS TFactura
+   LOCAL lEdit := .t., nA := oLbx:nAt, nF
+If nA > LEN(::aD)
+   nF := If( nA > 2, 1, nA-1 )
+   If EMPTY( ::aD[nF,01] ) .OR. oLbx:nCell # 1
+      MsgStop( "Primero Digite Código del Concepto","Nuevo" )
+      oLbx:nAt   := oLbx:nLen := oLbx:nRowPos := nA
+      oLbx:nCell := 1 ; lEdit := .f.
+      oLbx:HiliteCell( 1 ) ; oLbx:Refresh(.t.)
+      oLbx:DrawSelect()
+   EndIf
+Else
+   If EMPTY( ::aD[nA,01] ) .AND. oLbx:nCell # 1
+      MsgStop( "Primero Digite Código del Concepto" )
+      oLbx:nCell := 1 ; lEdit := .f.
+      oLbx:HiliteCell( 1 ) ; oLbx:Refresh()
+   EndIf
+EndIf
+RETURN lEdit
+
+//------------------------------------//
+METHOD Buscar( oDlg,lBus,nPor,nTope ) CLASS TFactura
+   LOCAL nF
+If nPor  # NIL
+   If Rango( nPor,0,nTope )
+      lBus := .t.
+   Else
+      lBus := .f.
+      MsgStop( "entre 0 y "+STR(nTope,3),oDlg )
+   EndIf
+ElseIf lBus == NIL
+   lBus := .t.
+   ::oCen:Seek( {"cencos",::aCCos[ ::aM[2],2 ]} )
+   If ::oCen:CENCOS == "52"
+      oApl:oNit:Seek( {"codigo_nit",oApl:oFac:CODIGO_NIT} )
+      ::aM[20] := oApl:oNit:CODIGO
+      ::aM[21] := oApl:oNit:NOMBRE
+   Else
+      oApl:oNit:Seek( {"codigo_nit",::oCen:CODIGO_NIT} )
+      oApl:oFac:CODIGO_NIT := ::oCen:CODIGO_NIT
+   EndIf
+   oApl:oFac:CENCOS     := ::oCen:CENCOS
+   If !oApl:oFac:lOK
+      If oApl:oEmp:ENLINEA
+         ::aM[3] := { "NOMINA DE TRABAJADORES","LIQUIDACION DE PRIMA",;
+             "LIQUIDACION DE CESANTIAS","LIQUIDACION DE PRESTACIONES"}[oApl:oFac:CLASE]
+      Else
+         ::aM[3] := "ARRIENDO AREAS PRIVADA"
+      EndIf
+      ::aM[18] := If( ::oCen:CODIGO_NIT == 457, 20, 30 )
+      oApl:oFac:CLIENTE := PADR( ::aM[3],40 )
+      oApl:oFac:PARAF   := ::oCen:PARAF
+      oApl:oFac:PARAFAT := If( ::oCen:PARAFAT, 17.66, 0 )
+      If oDlg # NIL
+         If ::oCen:CENCOS == "02"
+            ::aM[3] := "SRA. ANGELA SALGADO"
+            MsgStop( "de la SRA. ANGELA SALGADO y"+CRLF+;
+                     "Anotar INCAPACIDAD en Control","DESCONTAR EL VALOR" )
+         EndIf
+         oDlg:Update()
+      EndIf
+   EndIf
+Else
+   If (nF := ASCAN( ::aDes, { |x| x[1] == lBus } )) > 0
+      ::aM[15] := ::aDes[nF,2]
+      lBus := .t.
+   Else
+      MsgStop( "Este Código NO EXISTE !!!",lBus )
+      lBus := .f.
+   EndIf
+EndIf
+RETURN lBus
+
+//------------------------------------//
+METHOD CambiaFec( oDlg,oLbx ) CLASS TFactura
+   LOCAL cQry, cSql, cPer := NtChr( oApl:oFac:FECHA,"1" )
+ cQry := "empresa = " + LTRIM(STR(oApl:nEmpresa))+;
+    " AND ano_mes = " + xValToChar(oApl:cPer )   +;
+    " AND control = " + LTRIM(STR(oApl:oFac:CONTROL))
+If cPer == oApl:cPer
+   oApl:oFac:Update(.f.,1)
+   cSql := "UPDATE cgemovc SET fecha = " + xValToChar(oApl:oFac:FECHA)
+   MSQuery( oApl:oMySql:hConnect,cSql+" WHERE "+cQry )
+   RETURN NIL
+EndIf
+If MsgYesNo( "QUIERE HACER EL CAMBIO","VA A CAMBIAR DE MES" )
+   If oApl:oFam:Seek( {"empresa",oApl:nEmpresa,"numfac",::aM[1],;
+                       "tipo",oApl:Tipo,"anomes",oApl:cPer } )
+      oApl:oFam:ANOMES := cPer
+      Guardar( oApl:oFam,.f.,.f. )
+   EndIf
+   oApl:oFac:CONTROL := SgteCntrl( "control",cPer,.t. )
+   oApl:oFac:Update(.f.,1)
+   ::oMvc:Seek( cQry,"CM" )
+   ::oMvd:dbEval( {|o| Acumular( ::oMvc:ESTADO,o,5,5,.f.,.f. )  ,;
+                       o:ANO_MES := cPer, o:CONTROL := oApl:oFac:CONTROL,;
+                       Acumular( ::oMvc:ESTADO,o,2,2,.f.,.f. ) },cQry )
+   cSql := "UPDATE cgemovc SET ano_mes = " + xValToChar(cPer)           +;
+                              ", fecha = " + xValToChar(oApl:oFac:FECHA)+;
+                            ", control = " + LTRIM(STR(oApl:oFac:CONTROL))
+   MSQuery( oApl:oMySql:hConnect,cSql+" WHERE "+cQry )
+   oApl:cPer := cPer
+Else
+   oApl:oFac:FECHA := oApl:oFac:XColumn( 5 )
+EndIf
+RETURN NIL
+
+//------------------------------------//
+METHOD ComboBrowse( cState,nRow,nCol,oWnd ) CLASS TFactura
+   LOCAL oDlg, oBrw, oFont, oRect, nEle, lOk := .f.
+   DEFAULT nRow := 0, nCol := 0
+   If ValType( oWnd ) = "O"
+
+      oRect := oWnd:GetRect()
+
+      If ValType( nRow ) = "N"
+         nRow += oRect:nTop
+         nCol += oRect:nLeft
+      EndIf
+
+      If ( nEle := ( GetSysMetrics( 1 ) - ( nRow + 254 ) ) ) < 0
+         nRow += nEle
+      EndIf
+
+      If ( nEle := ( GetSysMetrics( 0 ) - ( nCol + 158 ) ) ) < 0
+         nCol += nEle
+      EndIf
+
+   Else
+      nRow := Nil
+   EndIf
+
+   DEFINE FONT oFont NAME "MS Sans Serif" SIZE 0, -10
+
+   DEFINE DIALOG oDlg FROM nRow, nCol TO nRow + 197, nCol + 157 PIXEL ;
+          STYLE nOr( WS_VISIBLE, WS_POPUP )
+
+   @ 0,0 BROWSE oBrw OF oDlg CELLED SIZE 79, 99 PIXEL FONT oFont ;
+        ON DBLCLICK ( lOk := .T., oDlg:End() ) ;
+        COLORS CLR_WHITE, nRGB(128,0,255)
+
+   oBrw:SetArray( ::aDes )     // Esto es necesario para trabajar con arrays
+   oBrw:aDefault := { 4, SPACE(40) }
+
+   ADD COLUMN TO BROWSE oBrw DATA ARRAY ELEMENT 1;
+       TITLE "Código" ;
+       SIZE 40 PIXELS ;
+       COLORS CLR_WHITE, nRGB(128,0,255),,, CLR_WHITE, CLR_BLACK
+
+   ADD COLUMN TO BROWSE oBrw DATA ARRAY ELEMENT 2;
+       TITLE "Nombre"  ;
+       SIZE 500 PIXELS ;
+       COLORS CLR_WHITE, nRGB(128,0,255),,, CLR_WHITE, CLR_BLACK
+
+   oBrw:bKeyDown := {| nKey | If( nKey == VK_RETURN .OR. nKey == VK_ESCAPE, ;
+                               oDlg:End(), Nil ), lOk := nKey != VK_ESCAPE }
+   oBrw:lSeek       := .t.
+   oBrw:lNoHScroll  := .t.
+   oBrw:lNoResetPos := .t.
+   oBrw:nLineStyle  := 0
+   oBrw:SetColor( { 15 }, { CLR_BLACK } )
+
+   ACTIVATE DIALOG oDlg ;
+         ON PAINT ( If( ValType( nRow ) != "N", WndCenter( oDlg:hWnd ), ;
+                    oDlg:Move( nRow, nCol ) ) ) ;
+         VALID ( oFont:End(), .T. )
+
+RETURN If( lOk, ::aDes[oBrw:nAt,1], cState )
+
+//------------------------------------//
+METHOD DelArray( oLbx,dFec,nPago ) CLASS TFactura
+   LOCAL cQry, lSi := .f., nA := oLbx:nAt
+If dFec == NIL
+   If LEN( ::aD ) > 2
+      If MsgNoYes( "Este Código "+STR(::aD[nA,1]),"Elimina" )
+         cQry := "DELETE FROM cgefactd WHERE row_id = " + LTRIM(STR(::aD[nA,4]))
+         MSQuery( oApl:oMySql:hConnect,cQry )
+         lSi := .t.
+      EndIf
+   EndIf
+ElseIf nPago > 0
+   oApl:cPer := NtChr( dFec,"1" )
+   oApl:lFam := SaldoFac( ::aM[1] )
+   If oApl:nSaldo >= nPago
+      GrabaSal( ::aM[1],1,nPago )
+      If (oApl:nSaldo - nPago) == 0
+         cQry := "UPDATE " + LOWER(oApl:oFac:cName)            +;
+                " SET indicador = 'C', "                       +;
+                     "fechacan  = " + xValToChar( dFec )       +;
+                " WHERE empresa = " + LTRIM(STR(oApl:nEmpresa))+;
+                  " AND numfac  = " + LTRIM(STR(::aM[1]))      +;
+                  " AND tipo = '"   + oApl:Tipo + "'"
+         MSQuery( oApl:oMySql:hConnect,cQry )
+      EndIf
+   EndIf
+   oApl:cPer := NtChr( oApl:oFac:FECHA,"1" )
+   oApl:oFam:Seek( {"empresa",oApl:nEmpresa,"numfac",::aM[1],"tipo",oApl:Tipo,;
+                    "anomes >= ",oApl:cPer},"anomes",.f. )
+   oLbx:Refresh()
+EndIf
+RETURN lSi
+
+//------------------------------------//
+METHOD DelFactu( oDlg,oLbx ) CLASS TFactura
+   LOCAL cQry
+If !oApl:oFac:lOK
+   If EMPTY( ::aM[4] ) //EMPTY( ::aD[1,01] )
+      oApl:oFac:INDICADOR := "A"
+      ::Guardar( oDlg,oLbx )
+   EndIf
+ElseIf oApl:oFac:INDICADOR == "A"
+   If MsgNoYes( "Está Factura","ACTIVA" )
+      oApl:oFac:INDICADOR := "P" ; oApl:oFac:Update(.f.,1)
+      oApl:lFam := SaldoFac( ::aM[1] )
+      GrabaSal( ::aM[1],1,-oApl:oFam:ABONOS )
+      cQry := "empresa = " + LTRIM(STR(oApl:nEmpresa))+;
+         " AND ano_mes = " + xValToChar(oApl:cPer )   +;
+         " AND control = " + LTRIM(STR(oApl:oFac:CONTROL))
+      MSQuery( oApl:oMySql:hConnect,"UPDATE cgemovc SET estado = 1 WHERE " + cQry )
+   EndIf
+Else
+   If Login( "Desea Anular esta Factura" )
+      cQry := "empresa = " + LTRIM(STR(oApl:nEmpresa))+;
+         " AND ano_mes = " + xValToChar(oApl:cPer )   +;
+         " AND control = " + LTRIM(STR(oApl:oFac:CONTROL))
+      ::oMvc:Seek( cQry,"CM" )
+      ::oMvd:dbEval( {|o| o:EMPRESA := -6, Acumular( ::oMvc:ESTADO,o,3,3,.f.,.f. ) },cQry )
+      MSQuery( oApl:oMySql:hConnect,"UPDATE cgemovc SET estado = 2 WHERE " + cQry )
+      oApl:oFac:INDICADOR := "A" ; oApl:oFac:Update(.f.,1)
+      oApl:lFam := SaldoFac( ::aM[1] )
+      GrabaSal( ::aM[1],1,oApl:nSaldo )
+      cQry := "DELETE FROM cgefactd "                       +;
+              "WHERE empresa = " + LTRIM(STR(oApl:nEmpresa))+;
+               " AND numfac = "  + LTRIM(STR(::aM[1]))      +;
+               " AND tipo  = '"  + oApl:Tipo + "'"
+      MSQuery( oApl:oMySql:hConnect,cQry )
+      ::Iniciar( oDlg,oLbx )
+   EndIf
+EndIf
+RETURN NIL
+
+//------------------------------------//
+METHOD Dscto( oDlg,oLbx ) CLASS TFactura
+   LOCAL aF := { 0,0,0,0,0,0 }, nF
+If oApl:oFac:CLASE == 1 .AND. oApl:oEmp:ENLINEA
+   AFILL( ::aM,0,5,6 )   //5 al 10
+   FOR nF := 1 TO LEN( ::aD )
+      If ::aD[nF,1] == 1
+         ::aM[7] += ::aD[nF,3]                       //Total Devengado
+      ElseIf ::aD[nF,1] == 2
+         ::aM[6] += ::aD[nF,3]                       //Parafiscales Produccion
+      ElseIf ::aD[nF,1] == 3
+         ::aM[8] += ::aD[nF,3]                       //Auxilio de Transporte
+      ElseIf ::aD[nF,1] == 4
+         ::aM[10] += ::aD[nF,3]                      //Otros Pagos
+         ::aM[11] := ::aD[nF,2]
+      ElseIf ::aD[nF,1] == 5
+         ::aM[09] += ::aD[nF,3]                      //- Aportes Parafiscales
+         ::aM[17] := ::aD[nF,2]
+      EndIf
+   NEXT nF
+     aF[1] := aF[2] := ::aM[7]
+   If ::aM[6] # 0
+      ::aM[7] += ::aM[6] + ::aM[8]
+        aF[1] := ::aM[7]
+   Else
+        aF[2] -= ::aM[8]
+   EndIf
+   If oApl:oFac:BASEP == 1
+      ::aM[5] := ROUND( aF[2] * oApl:oFac:PARAF / 100,0 )   //Parafiscales
+   ElseIf oApl:oFac:BASEP == 2
+      ::aM[5] := ROUND(::aDF[1] * oApl:oFac:PARAF / 100,0 )
+   EndIf
+   ::aM[6]  := ROUND( ::aM[6] * ::oCen:PARAF2 / 100,0 )     //Parafiscales Produccion
+   ::aM[16] := ROUND( ::aM[8] * oApl:oFac:PARAFAT / 100,0 ) //Parafiscales Aux.Transporte
+     aF[1] += ::aM[5] + ::aM[6] + ::aM[10] + ::aM[16] - ::aM[09]
+Else
+   ::aM[5] := 0
+   AEVAL( ::aD, { | e | aF[1] += If( e[1] <= 4  .OR. e[1] == 9, e[ 3 ], 0 ) } )
+EndIf
+If oApl:oEmp:ENLINEA
+   aF[3] := ROUND( aF[1] * ::oCen:ADMON / 100,0 )           //Administracion
+EndIf
+If oApl:nEmpresa == 11
+   If ::aD[1,1] == 9
+      ::aDF[2] := oApl:oFac:PIVA := If( ::aDF[2] == 0, 0, ::aDF[4] )
+   Else
+      ::aDF[2] := oApl:oFac:PIVA
+    //::aDF[2] := ::aDF[3]
+   EndIf
+   aF[4] := ROUND( aF[1] * ::aDF[2] / 100,0 )
+ElseIf oApl:oEmp:ADMON .AND. oApl:cPer >= "200702"
+   If ::lIva
+      aF[4] := ROUND( aF[1] * ::aDF[2] / 100,0 )
+      aF[5] := ROUND( aF[3] * ::aDF[3] / 100,0 )
+   ElseIf ::aM[19]
+      aF[4] := ROUND((aF[1]+aF[3]) * ::aDF[2] / 100,0 )
+   Else
+      aF[4] := ROUND( aF[3] * ::aDF[2] / 100,0 )
+   EndIf
+ElseIf ::aM[13] .AND. ::aM[19]
+   aF[4] := ROUND((aF[1]+aF[3]) * ::aDF[2] / 100,0 )
+Else
+   aF[4] := ROUND( aF[3] * ::aDF[2] / 100,0 )        //I.V.A.
+EndIf
+::aM[12] := aF[1]
+   aF[6] := ROUND( aF[3] * ::aM[18] / 100,0 )        //Descuento
+aF[1] += (aF[3] + aF[4] + aF[5]) - aF[6]
+If oApl:oFac:SERADMON  # aF[3] .OR. oApl:oFac:TOTALIVA  # aF[4] .OR. ;
+   oApl:oFac:ADMONIVA  # aF[5] .OR. oApl:oFac:TOTALDES  # aF[6] .OR. ;
+   oApl:oFac:TOTALFAC  # aF[1] .OR. oLbx:lChanged
+/*
+   If !oApl:oNit:AUTORETEN .AND. oApl:oFac:FECHA >= CTOD("01.05.2013")
+      oApl:oFac:RETCRE := ROUND( aF[3] * .003,0 )
+      aF[1] -= oApl:oFac:RETCRE
+   EndIf
+*/
+   oApl:oFac:TOTALFAC := aF[1]
+   oApl:oFac:SERADMON := aF[3] ; oApl:oFac:TOTALIVA := aF[4]
+   oApl:oFac:ADMONIVA := aF[5] ; oApl:oFac:TOTALDES := aF[6]
+   oDlg:Update()
+EndIf
+oLbx:Refresh() ; oLbx:DrawFooters()
+RETURN NIL
+
+//------------------------------------//
+METHOD Guardar( oDlg,oLbx ) CLASS TFactura
+   LOCAL aCta, lCambio, nAbono, nPago, nR, cFactu := "Numfac"+oApl:Tipo
+If EMPTY( ::aD[1,1] ) .AND. oApl:oFac:INDICADOR # "A"
+   MsgInfo( "Factura no Tiene ningun Items" )
+   RETURN NIL
+ElseIf EMPTY( oApl:oFac:FECHA )
+   MsgStop( "La fecha no puede ir en BLANCO",">>> OJO <<<" )
+   ::oG[3]:SetFocus()
+   RETURN NIL
+EndIf
+ aCta := { { ::aCta[1],"","","","",0,0,0,0,0 },{ ::aCta[2],"","","","",0,0,0,0,0 },;
+           { ::aCta[3],"","","","",0,0,0,0,0 },{ ::aCta[4],"","","","",0,0,0,0,0 },;
+           { ::aCta[5],"","","","",0,::aM[12],0,0,0 }          ,;
+           { ::aCta[6],"","","","",0,oApl:oFac:SERADMON,0,0,0 },;
+           { ::aCta[7],"","","","",0,oApl:oFac:TOTALIVA,0,0,0 },;
+           { ::aCta[8],"","","","",0,oApl:oFac:ADMONIVA,0,0,0 } }
+ nR   := oApl:oFac:TOTALIVA + oApl:oFac:ADMONIVA
+ nPago:= oApl:oFac:TOTALFAC - nR
+ If ::oCen:RETFTE .AND. oApl:nEmpresa # 10
+    aCta[2,6] := ROUND( nPago * oApl:oEmp:PFTE / 100,0 )
+ EndIf
+ If ::oCen:RETIVA
+    aCta[3,6] := ROUND( nR * 0.50,0 )
+ EndIf
+ If ::oCen:RETICA
+  //aCta[4,6] := ROUND( nPago * oApl:oEmp:PICA / 1000,0 )
+    aCta[4,6] := ROUND( oApl:oFac:SERADMON * oApl:oEmp:PICA / 1000,0 )
+ EndIf
+ aCta[1,6] := oApl:oFac:TOTALFAC - aCta[2,6] - aCta[3,6] - aCta[4,6]
+ aCta[6,7] -= oApl:oFac:TOTALDES
+ oApl:cPer := NtChr( oApl:oFac:FECHA,"1" )
+ If oApl:nEmpresa == 11
+    If oApl:oFac:PIVA == 8 .OR. oApl:oNit:TIPOCOD == 3
+       aCta[5,1] := "41550502"
+    EndIf
+    If oApl:cPer >= "201401" .AND. LEN( ::aCta ) > 9
+       nR := ROUND( nPago * oApl:oEmp:PCRE / 100,0 )
+       AADD( aCta,{ ::aCta[09],"","","","",nR,0,0,0,0 } )
+       AADD( aCta,{ ::aCta[10],"","","","",0,nR,0,0,0 } )
+    EndIf
+ EndIf
+ nPago := nR := 0
+If !oApl:oFac:lOK
+   nR := SgteNumero( cFactu,oApl:nEmpresa,.f. )
+   If !MsgYesNo("Factura #"+STR(nR),"Graba esta")
+      RETURN NIL
+   EndIf
+   oApl:oFac:EMPRESA := oApl:nEmpresa
+   oApl:oFac:TIPO    := oApl:Tipo
+   oApl:oFac:NUMFAC  := SgteNumero( cFactu,oApl:nEmpresa )
+   //BuscaDup( oApl:oFac:NUMFAC,oApl:Tipo )
+   oApl:oFac:Append( .t. )
+   oApl:nSaldo := aCta[1,6]
+   ::nSigFac   := oApl:oFac:NUMFAC + 1
+   cFactu  := "SI"
+   lCambio := .t. ; oApl:lFam := .f.
+   nR      := 1
+Else
+   If (lCambio := oApl:oFac:TOTALFAC # ::aM[4])
+      If !MsgNoYes( TRANSFORM( oApl:oFac:TOTALFAC,"NUEVO 999,999,999" ) +;
+         TRANSFORM( ::aM[4]," - VIEJO 999,999,999" ),"EL TOTAL ES DIFERENTE" )
+         RETURN NIL
+      EndIf
+   EndIf
+   If (oApl:lFam := SaldoFac( ::aM[1] ))
+      nPago := aCta[1,6] - oApl:oFac:CARTERA
+      oApl:nSaldo += nPago
+   Else
+      oApl:nSaldo := aCta[1,6]
+   EndIf
+   nR     := 0
+EndIf
+If lCambio
+   nAbono := oApl:nSaldo - nPago
+   oApl:oFac:INDICADOR:= If( nAbono == 0, oApl:oFac:INDICADOR, "P" )
+   oApl:oFac:FECHACAN := If( nAbono == 0, oApl:oFac:FECHA, CTOD("") )
+   oApl:oFac:CARTERA  := aCta[1,6]
+   GrabaSal( oApl:oFac:NUMFAC,nR,nPago )
+EndIf
+oApl:oFac:Update( .f.,1 )
+FOR nR := 1 TO LEN( ::aD )
+   If !EMPTY( ::aD[nR,1] ) .AND. ::aD[nR,3] > 0
+         ::oDet:Seek( {"row_id",::aD[nR,4]} )
+         ::oDet:CODIGO  := ::aD[nR,1] ; ::oDet:NOMBRE   := ::aD[nR,2]
+         ::oDet:VALOR   := ::aD[nR,3]
+      If ::aD[nR,4] == 0
+         ::oDet:EMPRESA := oApl:nEmpresa
+         ::oDet:NUMFAC  := oApl:oFac:NUMFAC
+         ::oDet:TIPO    := oApl:Tipo
+         ::oDet:Append( .f. )
+      Else
+         ::oDet:Update( .f.,1 )
+      EndIf
+   ElseIf ::aD[nR,4] > 0
+      MSQuery( oApl:oMySql:hConnect,"DELETE FROM cgefactd WHERE row_id = "+;
+               LTRIM(STR(::aD[nR,4])) )
+   EndIf
+NEXT nR
+If oApl:oFac:INDICADOR # "A"
+   ::Detalle( aCta,{0,oApl:oFac:NUMFAC,"","",oApl:oNit:CODIGO,oApl:oFac:CODIGO_NIT,"",0} )
+EndIf
+If cFactu == "SI" .AND. oApl:oFac:INDICADOR # "A"
+   ::Listado( oDlg,oLbx )
+EndIf
+RETURN NIL
+
+//------------------------------------//
+METHOD Detalle( aCta,aDet ) CLASS TFactura
+   LOCAL cSql, nE
+If ::oMvc:Seek( {"empresa",oApl:nEmpresa,"ano_mes",oApl:cPer,;
+                 "control",oApl:oFac:CONTROL} )
+   ::oMvd:dbEval( {|o| o:EMPRESA := -6, Acumular( ::oMvc:ESTADO,o,3,3,.f.,.f. ) },;
+                      {"empresa",oApl:nEmpresa, "ano_mes",oApl:cPer,;
+                       "control",::oMvc:CONTROL} )
+   ::oMvc:CONSECUTIV := 0 ; ::oMvc:ESTADO := 1
+   ::oMvc:CODIGONIT  := oApl:oFac:CODIGO_NIT
+Else
+   ::oMvc:EMPRESA   := oApl:nEmpresa   ; ::oMvc:ANO_MES  := oApl:cPer
+   ::oMvc:FECHA     := oApl:oFac:FECHA ; ::oMvc:FUENTE   := 6
+   ::oMvc:COMPROBANT:= oApl:oFac:NUMFAC; ::oMvc:CONCEPTO := oApl:oFac:CLIENTE
+   ::oMvc:CODIGONIT := oApl:oFac:CODIGO_NIT
+   ::oMvc:CONTROL   := SgteCntrl( "Control",oApl:cPer,.t. )
+   ::oMvc:ESTADO    := 1
+   ::oMvc:Append(.t.)
+   cSql := "UPDATE cgefactc SET control = " + LTRIM(STR(::oMvc:CONTROL)) +;
+           " WHERE row_id = " + LTRIM(STR(oApl:oFac:ROW_ID))
+   MSQuery( oApl:oMySql:hConnect,cSql )
+EndIf
+If oApl:nEmpresa == 10 .AND. oApl:cPer >= "201301"
+   aCta[7,1] := "25100104  "
+EndIf
+ aDet[1] := ::oMvc:COMPROBANT
+ aDet[4] := ::oMvc:FECHA
+ ActuaINF( @aCta,aDet )
+FOR nE := 1 TO LEN( aCta )
+   If aCta[nE,10] > 0
+      ::oMvc:CONSECUTIV ++
+      ::oMvd:Seek( "empresa = -6 LIMIT 1","CM" )
+      ::oMvd:EMPRESA   := oApl:nEmpresa ; ::oMvd:ANO_MES  := oApl:cPer
+      ::oMvd:CONTROL   := ::oMvc:CONTROL; ::oMvd:CUENTA   := aCta[nE,1]
+      ::oMvd:INFA      := aCta[nE,2]    ; ::oMvd:INFB     := aCta[nE,3]
+      ::oMvd:INFC      := aCta[nE,4]    ; ::oMvd:INFD     := aCta[nE,5]
+      ::oMvd:VALOR_DEB := aCta[nE,6]    ; ::oMvd:VALOR_CRE:= aCta[nE,7]
+      ::oMvd:CODIGO_NIT:= aCta[nE,8]    ; ::oMvd:PTAJE    := aCta[nE,9]
+      ::oMvd:LIBRO     := aCta[nE,10]
+      Acumular( 1,::oMvd,2,2,!::oMvd:lOK,.f. )
+    /*If ::oMvd:lOK
+         ::oMvd:Update(.f.,1)
+      Else
+         ::oMvd:Append(.f.)
+      EndIf*/
+   EndIf
+NEXT nE
+::oMvc:Update(.f.,1)
+RETURN NIL
+
+//------------------------------------//
+METHOD Listado( oDlg,oLbx ) CLASS TFactura
+   LOCAL aTL, oRpt, nV, lAnexo := .f.
+If oApl:oFac:lOK
+   aTL := Letras( oApl:oFac:TOTALFAC,70 )
+   aTL := { aTL[1], aTL[2], "", oApl:oNit:NOMBRE, ""       ,;
+            "Barranquilla, " + NtChr( oApl:oFac:FECHA,"2" ),;
+            oApl:oNit:DIRECCION, "", "", oApl:oFac:CLIENTE ,;
+            "EN Mision " +::oCen:NOMBRE,;
+            "Menos Auxilio Transporte","Anexos:","Planilla Nomina" }
+   //       FormatoNit( oApl:oNit:CODIGO,oApl:oNit:DIGITO ),;
+   If oApl:oEmp:ANEXO
+      lAnexo := MsgNoYes( "Imprimir el ANEXO",">>> QUIERE <<<" )
+   EndIf
+   If lAnexo
+      aTL := { aTL[1],aTL[2],STR(oApl:oFac:NUMFAC,10),"",;
+               "","","","","","","","M.A.M.","","" }
+   Else
+      If oApl:oEmp:ENLINEA
+         aTL[4] := "Por Concepto de Procesos, subprocesos y Servicios"
+         aTL[5] := "SUBTOTAL"
+      ElseIf oApl:nEmpresa == 11
+         aTL[4] := UPPER(::aD[1,2])
+         aTL[5] := ""
+      Else
+         aTL[4] := oApl:oFac:CLIENTE
+         aTL[5] := ::aD[1,2]
+      EndIf
+      oRpt := "SELECT numero FROM telefonos WHERE codigo_nit = " +;
+              LTRIM(STR(oApl:oNit:CODIGO_NIT)) + " ORDER BY orden LIMIT 1"
+    //oRpt   := Telefono( .f.,oApl:oFac:CODIGO_NIT,{} )
+      aTL[8] := Buscar( oRpt,"CM",,8 )
+      aTL[9] := Buscar( {"codigo",oApl:oNit:CODIGO_CIU},"ciudades","nombre",8 )
+   EndIf
+   If MsgNoYes( "En Formato WINDOWS","DESEA IMPRIMIR" )
+      ::ListoWIN( aTL,lAnexo )
+      ::Iniciar( oDlg,oLbx )
+      RETURN NIL
+   EndIf
+   oRpt := TDosPrint()
+   oRpt:New( oApl:cPuerto,oApl:cImpres,,.t.,,,66,66 )
+   oRpt:nL := 40
+   oRpt:nPage ++
+   oRpt:SetFont( oRpt:CPINormal,80,2 )
+//cFntC := CHR(27)+CHR(51)+CHR(33)        // n/216 ESC 3n
+//   oRpt:Say( 10,01,CHR(27)+CHR(51)+CHR(58)+" " )  // n/216 ESC 3n
+//cFntN := CHR(27)+CHR(50)                // 1/6   ESC 2 Normal
+//   oRpt:Say( 11,01,CHR(27)+CHR(50)+" " )          // 1/6   ESC 2 Normal
+//   oRpt:SetFont( oDPrn:cFontI+cFntC )
+   If lAnexo
+      //oRpt:Say( 12,60,oRpt:CPILarge+aTL[03] )
+      oRpt:Say( 14,12,aTL[04] )
+      oRpt:Say( 15,07,aTL[05] )
+      oRpt:Say( 16,46,aTL[06] )
+      oRpt:Say( 17,12,aTL[07] )
+      oRpt:Say( 18,07,aTL[08] )
+
+      oRpt:Say( 25,14,aTL[10] )
+      oRpt:Say( 26,14,aTL[11] )
+      If oApl:oFac:CLASE == 1
+         nV := If( oApl:oFac:BASEP == 2, ::aDF[1], ::aM[7] - ::aM[8] )
+         oRpt:Say( 31,14,NtChr(oApl:oFac:FECHADES,"2") +" AL "+;
+                         NtChr(oApl:oFac:FECHAHAS,"2") )
+         oRpt:Say( 32,14,::aD[1,2] )
+         oRpt:Say( 32,60,TRANSFORM( ::aD[1,3],"999,999,999.99" ) )
+         If ::aM[6] > 0
+            oRpt:Say( 33,14,::aD[2,2] )
+            oRpt:Say( 33,60,TRANSFORM( ::aD[2,3],"999,999,999.99" ) )
+            oRpt:Say( 40,14,"P.P.                       "+TRANSFORM( ::oCen:PARAF2,"999.99" ) )
+            oRpt:Say( 40,60,TRANSFORM( ::aM[6],"999,999,999.99" ) )
+            oRpt:nL ++
+         EndIf
+         If oApl:oFac:BASEP # 3
+            oRpt:Say( 34,16,"V.B.P." )
+            oRpt:Say( 35,18,"V.D." )
+            oRpt:Say( 35,47,TRANSFORM( ::aM[7],"999,999,999.99" ) )
+            oRpt:Say( 36,18,aTL[12] )
+            oRpt:Say( 36,47,TRANSFORM( ::aM[8],"999,999,999.99" ) )
+            oRpt:Say( 37,47,REPLICATE( "_",14 ) )
+            oRpt:Say( 38,14,"B.L.P." )
+            oRpt:Say( 38,47,TRANSFORM( nV,"999,999,999.99" ) )
+            oRpt:Say( 39,14,"P.                         "+TRANSFORM( oApl:oFac:PARAF,"999.99" ) )
+            oRpt:Say( 39,60,TRANSFORM( ::aM[5],"999,999,999.99" ) )
+            If ::aM[16] > 0
+               oRpt:Say( oRpt:nL,14,"P.M.A.M.                   "+TRANSFORM(oApl:oFac:PARAFAT,"999.99") )
+               oRpt:Say( oRpt:nL,60,TRANSFORM( ::aM[16],"999,999,999.99" ) )
+               oRpt:nL ++
+            EndIf
+            If ::aM[10] > 0
+               oRpt:Say( oRpt:nL,14,::aM[11] )
+               oRpt:Say( oRpt:nL,60,TRANSFORM( ::aM[10],"999,999,999.99" ) )
+               oRpt:nL ++
+            EndIf
+            If ::aM[09] > 0
+               oRpt:Say( oRpt:nL,14,::aM[17] )
+               oRpt:Say( oRpt:nL,60,TRANSFORM(-::aM[09],"999,999,999.99" ) )
+               oRpt:nL ++
+            EndIf
+         EndIf
+      ElseIf oApl:oFac:CLASE == 4
+         oRpt:nL -= LEN( ::aD )
+         FOR nV := 1 TO LEN( ::aD )
+            If ::aD[nV,1] <= 5 .AND. ::aD[nV,3] > 0
+               oRpt:Say( oRpt:nL,14,::aD[nV,2] )
+               oRpt:Say( oRpt:nL,47,TRANSFORM( ::aD[nV,3],"999,999,999.99" ) )
+               oRpt:nL ++
+            EndIf
+         NEXT nV
+      EndIf
+      oRpt:Say(  oRpt:nL,60,REPLICATE( "_",14 ) )
+      If ::lIva
+         oRpt:Say(++oRpt:nL,14,"ST" )
+         oRpt:Say(  oRpt:nL,60,TRANSFORM( ::aM[12],"999,999,999.99" ) )
+         oRpt:Say(++oRpt:nL,14,"S.AD.                      "+TRANSFORM( ::oCen:ADMON,"999.9" ) )
+         oRpt:Say(  oRpt:nL,60,TRANSFORM( oApl:oFac:SERADMON,"999,999,999.99" ) )
+         If oApl:oEmp:ADMON //.AND. ::lIva
+            oRpt:Say(++oRpt:nL,41,TRANSFORM( ::aDF[3],"999.9" ) )
+            oRpt:Say(  oRpt:nL,60,TRANSFORM( oApl:oFac:ADMONIVA,"999,999,999.99" ) )
+         EndIf
+      Else
+         nV := ::aM[12] + oApl:oFac:SERADMON
+         oRpt:Say(++oRpt:nL,60,TRANSFORM( ::aM[12],"999,999,999.99" ) )
+         oRpt:Say(++oRpt:nL,14,"S.AD.                      "+TRANSFORM( ::oCen:ADMON,"999.9" ) )
+         oRpt:Say(  oRpt:nL,60,TRANSFORM( oApl:oFac:SERADMON,"999,999,999.99" ) )
+         oRpt:Say(++oRpt:nL,60,REPLICATE( "_",14 ) )
+         oRpt:Say(++oRpt:nL,14,"ST" )
+         oRpt:Say(  oRpt:nL,60,TRANSFORM( nV      ,"999,999,999.99" ) )
+      EndIf
+      oRpt:Say(++oRpt:nL,41,TRANSFORM( ::aDF[2],"999.9" ) )
+      oRpt:Say(  oRpt:nL,60,TRANSFORM( oApl:oFac:TOTALIVA,"999,999,999.99" ) )
+      If oApl:oFac:TOTALDES > 0
+         oRpt:Say(++oRpt:nL,14,"DESCUENTO S.AD.            "+TRANSFORM( ::aM[18],"999.9%" ) )
+         oRpt:Say(  oRpt:nL,60,TRANSFORM( oApl:oFac:TOTALDES,"999,999,999.99" ) )
+      EndIf
+      oRpt:Say(++oRpt:nL,60,REPLICATE( "_",14 ) )
+      oRpt:Say(++oRpt:nL,30,"T.F." )
+      oRpt:Say(  oRpt:nL,59,TRANSFORM( oApl:oFac:TOTALFAC,"$999,999,999.99" ) )
+      oRpt:Say(++oRpt:nL,60,REPLICATE( "_",14 ) )
+      oRpt:SetFont( oRpt:CPICompress,80,2 )
+      oRpt:Say(++oRpt:nL,14,aTL[1] )
+      oRpt:Say(++oRpt:nL,14,aTL[2] )
+      oRpt:SetFont( oRpt:CPINormal,80,2 )
+      oRpt:Say( 56,16,aTL[13] )
+      oRpt:Say( 57,17,aTL[14] )
+   Else
+// FACTURA
+      oRpt:Say( 14,12,oApl:oNit:NOMBRE )
+      oRpt:Say( 15,07,FormatoNit( oApl:oNit:CODIGO,oApl:oNit:DIGITO ) )
+      oRpt:Say( 16,46,"Barranquilla, " + NtChr(oApl:oFac:FECHA,"2") )
+      oRpt:Say( 17,12,oApl:oNit:DIRECCION )
+      oRpt:Say( 18,07,aTL[8] )
+      oRpt:Say( 19,12,aTL[9] )
+      oRpt:Say( 24,14,aTL[4] )
+      If ::lIva
+         oRpt:Say( 24,60,TRANSFORM( ::aM[12],"999,999,999.99" ) )
+         oRpt:Say( 27,30,"SUBTOTAL" )
+         oRpt:Say( 27,60,TRANSFORM( ::aM[12],"999,999,999.99" ) )
+         oRpt:Say( 28,14,"A.I.U.---------------------"+TRANSFORM( ::oCen:ADMON,"999.9%" ) )
+         oRpt:Say( 28,60,TRANSFORM( oApl:oFac:SERADMON,"999,999,999.99" ) )
+         oRpt:Say( 29,16,"(Administracion, Imprevistos, Utilidad)" )
+         If oApl:oEmp:ADMON
+            oRpt:Say(++oRpt:nL,14,"I.V.A.---------------------"+TRANSFORM( ::aDF[3],"999.9%" ) )
+            oRpt:Say(  oRpt:nL,60,TRANSFORM( oApl:oFac:ADMONIVA,"999,999,999.99" ) )
+         EndIf
+         oRpt:nL := 29
+      ElseIf !::aM[19]
+         nV := ::aM[12] + oApl:oFac:SERADMON + oApl:oFac:TOTALIVA
+         oRpt:Say( 24,60,TRANSFORM( ::aM[12],"999,999,999.99" ) )
+         If oApl:nEmpresa == 11
+            If ::aD[1,1] == 9
+               oRpt:Say( 26,15,"Impuesto Nacional al Consumo "+TRANSFORM( ::aDF[2],"999.9%" ) )
+            Else
+               oRpt:Say( 26,30,"I.V.A. del----"+TRANSFORM( ::aDF[2],"999.9%" ) )
+            EndIf
+            oRpt:Say( 26,60,TRANSFORM( oApl:oFac:TOTALIVA,"999,999,999.99" ) )
+         Else
+            oRpt:Say( 26,30,"A.I.U.--------"+TRANSFORM( ::oCen:ADMON,"999.9%" ) )
+            oRpt:Say( 26,60,TRANSFORM( oApl:oFac:SERADMON,"999,999,999.99" ) )
+            oRpt:Say( 27,30,"I.V.A. del----"+TRANSFORM( ::aDF[2],"999.9%" ) )
+            oRpt:Say( 27,60,TRANSFORM( oApl:oFac:TOTALIVA,"999,999,999.99" ) )
+            oRpt:Say( 29,60,REPLICATE( "_",14 ) )
+            oRpt:Say( 30,30,aTL[5] )
+            oRpt:Say( 30,60,TRANSFORM( nV,"999,999,999.99" ) )
+         EndIf
+         oRpt:nL := 30
+      Else
+         nV := ::aM[12] + oApl:oFac:SERADMON
+         If oApl:oEmp:ENLINEA
+            oRpt:Say( 24,60,TRANSFORM( nV,"999,999,999.99" ) )
+            oRpt:Say( 29,60,REPLICATE( "_",14 ) )
+         EndIf
+         oRpt:Say( 30,30,aTL[5] )
+         oRpt:Say( 30,60,TRANSFORM( nV,"999,999,999.99" ) )
+         oRpt:nL := 30
+      EndIf
+      If ::aM[19]
+         oRpt:Say(++oRpt:nL,14,"I.V.A. del-----------------"+TRANSFORM( ::aDF[2],"999.9%" ) )
+         oRpt:Say(  oRpt:nL,60,TRANSFORM( oApl:oFac:TOTALIVA,"999,999,999.99" ) )
+      ElseIf oApl:oFac:TOTALDES > 0
+       //oRpt:Say(++oRpt:nL,30,"DESCUENTO     "+TRANSFORM( ::aM[18],"999.9%" ) )
+         oRpt:Say(++oRpt:nL,30,"DESCUENTO" )
+         oRpt:Say(  oRpt:nL,60,TRANSFORM( oApl:oFac:TOTALDES,"999,999,999.99" ) )
+      EndIf
+      oRpt:Say(++oRpt:nL,60,REPLICATE( "_",14 ) )
+      oRpt:Say(++oRpt:nL,30,"TOTAL FACTURA" )
+      oRpt:Say(  oRpt:nL,59,TRANSFORM( oApl:oFac:TOTALFAC,"$999,999,999.99" ) )
+      oRpt:Say(++oRpt:nL,60,REPLICATE( "_",14 ) )
+      oRpt:SetFont( oRpt:CPICompress,80,2 )
+      oRpt:Say( 35,14,aTL[1] )
+      oRpt:Say( 36,14,aTL[2] )
+      oRpt:SetFont( oRpt:CPINormal,80,2 )
+   EndIf
+   oRpt:NewPage()
+   oRpt:End()
+   ::Iniciar( oDlg,oLbx )
+EndIf
+RETURN NIL
+
+//------------------------------------//
+METHOD ListoWIN( aTL,lAnexo ) CLASS TFactura
+    LOCAL nV, nL := 18
+ IMPRIME INIT ::oCen:NOMBRE
+   PAGE
+   If lAnexo
+      //UTILPRN ::oUtil  4.0,19.0 SAY aTL[03] RIGHT FONT ::aFnt[4]
+      UTILPRN ::oUtil SELECT ::aFnt[2]
+      UTILPRN ::oUtil  6.0, 3.5 SAY aTL[04]
+      UTILPRN ::oUtil  6.7, 2.5 SAY aTL[05]
+      UTILPRN ::oUtil  6.9,12.0 SAY aTL[06]
+      UTILPRN ::oUtil  7.3, 3.5 SAY aTL[07]
+      UTILPRN ::oUtil  7.9, 2.5 SAY aTL[08]
+      UTILPRN ::oUtil 11.0, 3.9 SAY aTL[10]
+      UTILPRN ::oUtil 11.5, 3.9 SAY aTL[11]
+      If oApl:oFac:CLASE == 1
+         nV := If( oApl:oFac:BASEP == 2, ::aDF[1], ::aM[7] - ::aM[8] )
+         UTILPRN ::oUtil 12.5, 3.9 SAY NtChr(oApl:oFac:FECHADES,"2") + " AL " +;
+                                       NtChr(oApl:oFac:FECHAHAS,"2")
+         UTILPRN ::oUtil 14.0, 3.9 SAY ::aD[1,2]
+         UTILPRN ::oUtil 14.0,19.0 SAY TRANSFORM( ::aD[1,3],"999,999,999.99" ) RIGHT
+         If ::aM[6] > 0
+            UTILPRN ::oUtil 14.5, 3.9 SAY ::aD[2,2]
+            UTILPRN ::oUtil 14.5,19.0 SAY TRANSFORM( ::aD[2,3],"999,999,999.99" ) RIGHT
+            UTILPRN ::oUtil 18.0, 3.9 SAY "P.P."
+            UTILPRN ::oUtil 18.0,12.5 SAY TRANSFORM( ::oCen:PARAF2,"999.99" )   RIGHT
+            UTILPRN ::oUtil 18.0,19.0 SAY TRANSFORM( ::aM[6],"999,999,999.99" ) RIGHT
+            nL += 0.5
+         EndIf
+         If oApl:oFac:BASEP # 3
+            UTILPRN ::oUtil 15.0, 4.4 SAY "V.B.P."
+            UTILPRN ::oUtil 15.5, 4.9 SAY "V.D."
+            UTILPRN ::oUtil 15.5,15.8 SAY TRANSFORM( ::aM[7],"999,999,999.99" ) RIGHT
+            UTILPRN ::oUtil 16.0, 4.9 SAY aTL[12]
+            UTILPRN ::oUtil 16.0,15.8 SAY TRANSFORM( ::aM[8],"999,999,999.99" ) RIGHT
+            UTILPRN ::oUtil 16.5,13.0 SAY REPLICATE( "_",14 )
+            UTILPRN ::oUtil 17.0, 3.9 SAY "B.L.P."
+            UTILPRN ::oUtil 17.0,15.8 SAY TRANSFORM( nV     ,"999,999,999.99" ) RIGHT
+            UTILPRN ::oUtil 17.5, 3.9 SAY "P."
+            UTILPRN ::oUtil 17.5,12.5 SAY TRANSFORM(oApl:oFac:PARAF,"999.99" )  RIGHT
+            UTILPRN ::oUtil 17.5,19.0 SAY TRANSFORM( ::aM[5],"999,999,999.99" ) RIGHT
+            If ::aM[16] > 0
+               UTILPRN ::oUtil nL, 3.9 SAY "P.M.A.M."
+               UTILPRN ::oUtil nL,12.5 SAY TRANSFORM(oApl:oFac:PARAFAT,"999.99" ) RIGHT
+               UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( ::aM[16],"999,999,999.99" ) RIGHT
+               nL += 0.5
+            EndIf
+            If ::aM[10] > 0
+               UTILPRN ::oUtil nL, 3.9 SAY ::aM[11]
+               UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( ::aM[10],"999,999,999.99" ) RIGHT
+               nL += 0.5
+            EndIf
+            If ::aM[09] > 0
+               UTILPRN ::oUtil nL, 3.9 SAY ::aM[17]
+               UTILPRN ::oUtil nL,19.0 SAY TRANSFORM(-::aM[09],"999,999,999.99" ) RIGHT
+               nL += 0.5
+            EndIf
+         EndIf
+      ElseIf oApl:oFac:CLASE == 4
+         nL -= (LEN( ::aD ) * 0.5)
+         FOR nV := 1 TO LEN( ::aD )
+            If ::aD[nV,1] <= 5 .AND. ::aD[nV,3] > 0
+               UTILPRN ::oUtil nL, 3.9 SAY ::aD[nV,2]
+               UTILPRN ::oUtil nL,15.8 SAY TRANSFORM( ::aD[nV,3],"999,999,999.99" ) RIGHT
+               nL += 0.5
+            EndIf
+         NEXT nV
+      EndIf
+      UTILPRN ::oUtil nL,16.3 SAY REPLICATE( "_",14 )
+      nL += 0.5
+      If ::lIva
+         UTILPRN ::oUtil nL, 3.9 SAY "ST"
+         UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( ::aM[12],"999,999,999.99" ) RIGHT
+         nL += 0.5
+         UTILPRN ::oUtil nL, 3.9 SAY "S.AD"
+         UTILPRN ::oUtil nL,12.5 SAY TRANSFORM( ::oCen:ADMON ,"999.9" ) RIGHT
+         UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( oApl:oFac:SERADMON,"999,999,999.99" ) RIGHT
+         If oApl:oEmp:ADMON //.AND. ::lIva
+            nL += 0.5
+            UTILPRN ::oUtil nL,12.5 SAY TRANSFORM( ::aDF[3],"999.9" ) RIGHT
+            UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( oApl:oFac:ADMONIVA,"999,999,999.99" ) RIGHT
+         EndIf
+      Else
+         nV := ::aM[12] + oApl:oFac:SERADMON
+         UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( ::aM[12],"999,999,999.99" ) RIGHT
+         nL += 0.5
+         UTILPRN ::oUtil nL, 3.9 SAY "S.AD"
+         UTILPRN ::oUtil nL,12.5 SAY TRANSFORM( ::oCen:ADMON ,"999.9" ) RIGHT
+         UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( oApl:oFac:SERADMON,"999,999,999.99" ) RIGHT
+         nL += 0.5
+         UTILPRN ::oUtil nL,16.3 SAY REPLICATE( "_",14 )
+         nL += 0.5
+         UTILPRN ::oUtil nL, 3.9 SAY "ST"
+         UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( nV      ,"999,999,999.99" ) RIGHT
+      EndIf
+      nL += 0.5
+      UTILPRN ::oUtil nL,12.5 SAY TRANSFORM( ::aDF[2],"999.9" ) RIGHT
+      UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( oApl:oFac:TOTALIVA,"999,999,999.99" ) RIGHT
+      If oApl:oFac:TOTALDES > 0
+         nL += 0.5
+         UTILPRN ::oUtil nL, 3.9 SAY "DESCUENTO S.AD."
+         UTILPRN ::oUtil nL,12.5 SAY TRANSFORM( ::aM[18] ,"999.9" ) RIGHT
+         UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( oApl:oFac:TOTALDES,"999,999,999.99" ) RIGHT
+      EndIf
+      UTILPRN ::oUtil nL,16.3 SAY REPLICATE( "_",14 )
+      nL += 0.5
+      UTILPRN ::oUtil nL, 8.0 SAY "T.F."
+      UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( oApl:oFac:TOTALFAC,"$999,999,999.99" ) RIGHT
+      nL += 0.5
+      UTILPRN ::oUtil nL,16.3 SAY REPLICATE( "_",14 )
+      nL += 0.5
+      UTILPRN ::oUtil nL, 4.0 SAY aTL[1] FONT ::aFnt[5]
+      nL += 0.5
+      UTILPRN ::oUtil nL, 4.0 SAY aTL[2] FONT ::aFnt[5]
+      UTILPRN ::oUtil 23.2, 4.5 SAY aTL[13]
+      UTILPRN ::oUtil 23.7, 4.6 SAY aTL[14]
+   Else
+      UTILPRN ::oUtil  6.0, 3.5 SAY oApl:oNit:NOMBRE
+      UTILPRN ::oUtil  6.7, 2.5 SAY FormatoNit( oApl:oNit:CODIGO,oApl:oNit:DIGITO )
+      UTILPRN ::oUtil  6.9,12.0 SAY "Barranquilla, " + NtChr(oApl:oFac:FECHA,"2")
+      UTILPRN ::oUtil  7.3, 3.5 SAY oApl:oNit:DIRECCION
+      UTILPRN ::oUtil  7.9, 2.5 SAY aTL[8]
+      UTILPRN ::oUtil  8.5, 3.5 SAY aTL[9]
+      UTILPRN ::oUtil 12.0, 3.9 SAY aTL[4]
+      If ::lIva
+         UTILPRN ::oUtil 12.0,19.0 SAY TRANSFORM( ::aM[12],"999,999,999.99" ) RIGHT
+         UTILPRN ::oUtil 15.0, 8.0 SAY "SUBTOTAL"
+         UTILPRN ::oUtil 15.0,19.0 SAY TRANSFORM( ::aM[12],"999,999,999.99" ) RIGHT
+         UTILPRN ::oUtil 15.5, 3.9 SAY "A.I.U.(Administracion, Imprevistos, Utilidad)"
+         UTILPRN ::oUtil 15.5,12.5 SAY TRANSFORM( ::oCen:ADMON ,"999.9%" )   RIGHT
+         UTILPRN ::oUtil 15.5,19.0 SAY TRANSFORM( oApl:oFac:SERADMON,"999,999,999.99" ) RIGHT
+         nL := 16
+         If oApl:oEmp:ADMON
+            UTILPRN ::oUtil nL, 3.9 SAY "I.V.A.---------------------"
+            UTILPRN ::oUtil nL,12.5 SAY TRANSFORM( ::aDF[3],"999.9%" )  RIGHT
+            UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( oApl:oFac:ADMONIVA,"999,999,999.99" ) RIGHT
+            nL += 0.5
+         EndIf
+      ElseIf !::aM[19]
+         nL := 17
+         nV := ::aM[12] + oApl:oFac:SERADMON + oApl:oFac:TOTALIVA
+         UTILPRN ::oUtil 12.0,19.0 SAY TRANSFORM( ::aM[12],"999,999,999.99" ) RIGHT
+         If oApl:nEmpresa == 11
+            If ::aD[1,1] == 9
+               UTILPRN ::oUtil 13.0, 6.0 SAY "Impuesto Nacional al Consumo"
+            Else
+               UTILPRN ::oUtil 13.0, 8.0 SAY "I.V.A. del----"
+            EndIf
+            UTILPRN ::oUtil 13.0,12.5 SAY TRANSFORM( ::aDF[2]      ,"999.9%" )   RIGHT
+            UTILPRN ::oUtil 13.0,19.0 SAY TRANSFORM( oApl:oFac:TOTALIVA,"999,999,999.99" ) RIGHT
+         Else
+            UTILPRN ::oUtil 13.0, 8.0 SAY "A.I.U.--------"
+            UTILPRN ::oUtil 13.0,12.5 SAY TRANSFORM( ::oCen:ADMON,"999.9%" )     RIGHT
+            UTILPRN ::oUtil 13.0,19.0 SAY TRANSFORM( oApl:oFac:SERADMON,"999,999,999.99" ) RIGHT
+            UTILPRN ::oUtil 14.0, 8.0 SAY "I.V.A. del----"
+            UTILPRN ::oUtil 14.0,12.5 SAY TRANSFORM( ::aDF[2]     ,"999.9%" )    RIGHT
+            UTILPRN ::oUtil 14.0,19.0 SAY TRANSFORM( oApl:oFac:TOTALIVA,"999,999,999.99" ) RIGHT
+            UTILPRN ::oUtil 16.0,16.3 SAY REPLICATE( "_",14 )
+            UTILPRN ::oUtil 16.5, 8.0 SAY aTL[5]
+            UTILPRN ::oUtil 16.5,19.0 SAY TRANSFORM( nV      ,"999,999,999.99" ) RIGHT
+         EndIf
+      Else
+         nL := 17
+         nV := ::aM[12] + oApl:oFac:SERADMON
+         If oApl:oEmp:ENLINEA
+            UTILPRN ::oUtil 12.0,19.0 SAY TRANSFORM( nV      ,"999,999,999.99" ) RIGHT
+            //UTILPRN ::oUtil 13.0, 8.0 SAY "A.I.U.(Administracion, Imprevistos, Utilidad)"
+            UTILPRN ::oUtil 16.0,16.3 SAY REPLICATE( "_",14 )
+         EndIf
+         UTILPRN ::oUtil 16.5, 8.0 SAY aTL[5]
+         UTILPRN ::oUtil 16.5,19.0 SAY TRANSFORM( nV      ,"999,999,999.99" ) RIGHT
+      EndIf
+      If ::aM[19]
+         UTILPRN ::oUtil nL, 3.9 SAY "I.V.A. del-----------------"
+         UTILPRN ::oUtil nL,12.5 SAY TRANSFORM( ::aDF[2],"999.9%" )  RIGHT
+         UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( oApl:oFac:TOTALIVA,"999,999,999.99" ) RIGHT
+      ElseIf oApl:oFac:TOTALDES > 0
+         nL += 0.5
+         UTILPRN ::oUtil nL, 8.0 SAY "DESCUENTO"
+       //UTILPRN ::oUtil nL,12.5 SAY TRANSFORM( ::aM[18],"999.9%" ) RIGHT
+         UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( oApl:oFac:TOTALDES,"999,999,999.99" ) RIGHT
+      EndIf
+      nL += 0.5
+      UTILPRN ::oUtil nL,16.3 SAY REPLICATE( "_",14 )
+      nL += 0.5
+      UTILPRN ::oUtil nL, 8.0 SAY "TOTAL FACTURA"
+      UTILPRN ::oUtil nL,19.0 SAY TRANSFORM( oApl:oFac:TOTALFAC,"$999,999,999.99" ) RIGHT
+      nL += 0.5
+      UTILPRN ::oUtil nL,16.3 SAY REPLICATE( "_",14 )
+      nL ++
+      UTILPRN ::oUtil nL, 4.0 SAY aTL[1] FONT ::aFnt[5]
+      nL += 0.5
+      UTILPRN ::oUtil nL, 4.0 SAY aTL[2] FONT ::aFnt[5]
+   EndIf
+   ENDPAGE
+ IMPRIME END .F.
+RETURN NIL
+
+//------------------------------------//
+METHOD Abonos() CLASS TFactura
+   LOCAL aGT, aMov := {}, cQry, nA, nL, hRes
+   LOCAL oDlg, oLbx, oLbf
+cQry := LTRIM(STR( ::aM[1] ))
+cQry := "SELECT c.fuente, c.comprobant, c.fecha, d.valor_deb, d.valor_cre "+;
+        "FROM cgemovd d, cgemovc c "                    +;
+        "WHERE d.empresa = " + LTRIM(STR(oApl:nEmpresa))+;
+         " AND d.ano_mes >= "+ xValToChar( oApl:cPer )  +;
+         " AND d.cuenta = "  + xValToChar( ::aCta[1] )  +;
+         " AND (d.infc = '"  + cQry                     +;
+         "' OR  d.infc = '"  + cQry + oApl:Tipo         +;
+       "') AND c.empresa = d.empresa"                   +;
+         " AND c.ano_mes = d.ano_mes"                   +;
+         " AND c.control = d.control"
+aGT  := { 0,0,"999,999,999.99" }
+hRes := If( MSQuery( oApl:oMySql:hConnect,cQry ) ,;
+            MSStoreResult( oApl:oMySql:hConnect ), 0 )
+nL   := MSNumRows( hRes )
+While nL > 0
+   cQry := MyReadRow( hRes )
+   AEVAL( cQry, { | xV,nP | cQry[nP] := MyClReadCol( hRes,nP ) } )
+   AADD( aMov,{ cQry[1],cQry[2],cQry[3],cQry[4],cQry[5] } )
+   aGT[1] += cQry[4]
+   aGT[2] += cQry[5]
+   nL --
+EndDo
+ MSFreeResult( hRes )
+If LEN( aMov ) == 0
+   aMov := { { 0, 0, CTOD( "" ), 0, 0 } }
+EndIf
+oApl:oFam:Seek( {"empresa",oApl:nEmpresa,"numfac",::aM[1],"tipo",oApl:Tipo,;
+                 "anomes >= ",NtChr( oApl:oFac:FECHA,"1" )},"anomes",.f. )
+DEFINE DIALOG oDlg FROM 0, 0 TO 20,54 ;
+   TITLE "Movimientos de la Factura " + LTRIM(STR( ::aM[1] ))
+   @ 0.6,06 SAY oApl:oFac:CLIENTE OF oDlg SIZE 130,10 PIXEL;
+      COLOR nRGB( 255,0,0 )
+   @ 10.0,04 BROWSE oLbx SIZE 200,70 PIXEL OF oDlg CELLED;
+      COLORS CLR_BLACK, CLR_NBLUE
+   oLbx:SetArray( aMov )
+   oLbx:nHeightCell += 4
+   oLbx:nHeightHead += 4
+   oLbx:SetAppendMode( .f. )                         // Activando Auto Append Mode
+   oLbx:bKeyDown := {|nKey| If(nKey=VK_F5, (nA := oLbx:nAt,;
+                                            ::DelArray( oLbf,aMov[nA,3],aMov[nA,5] ) ), ) }
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 1;
+       TITLE "Fuente"          PICTURE     "999" ;
+       SIZE  44 ;
+       3DLOOK TRUE, TRUE, TRUE;    // Celda, Titulo, Footers
+       MOVE DT_MOVE_NEXT;          // Cursor pasa a la Sig.Columna editable
+       ALIGN DT_RIGHT, DT_CENTER    // Celda, Titulo, Footer
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 2;
+       TITLE "Comprobante"     PICTURE "999,999" ;
+       SIZE  82 ;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_RIGHT, DT_CENTER
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 3;
+       TITLE "Fecha";
+       SIZE 70 ;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_LEFT, DT_CENTER
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 4;
+       TITLE "Valor"+CRLF+"Debito"               ;
+       PICTURE aGT[3] ;
+       SIZE 100 ;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_RIGHT, DT_CENTER, DT_RIGHT;
+       FOOTER { || TRANSFORM( aGT[1],aGT[3] ) }
+   ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 5;
+       TITLE "Valor"+CRLF+"Credito"              ;
+       PICTURE aGT[3] ;
+       SIZE 100 ;
+       3DLOOK TRUE, TRUE, TRUE;
+       MOVE DT_MOVE_NEXT;
+       ALIGN DT_RIGHT, DT_CENTER, DT_RIGHT;
+       FOOTER { || TRANSFORM( aGT[2],aGT[3] ) }
+   oLbx:SetColor( { 2, 6, 15 }, ;
+                  { {|| If( oLbx:nAt % 2 == 0, CLR_PINK, CLR_NBLUE ) },;
+                    { CLR_WHITE, CLR_HRED }, ; // degraded cursor
+                      CLR_GRAY } )  // grid lines color
+
+   @ 86.0,04 LISTBOX oLbf FIELDS oApl:oFam:ANOMES,;
+                      TRANSFORM( oApl:oFam:SALDO ,aGT[3]),;
+                      TRANSFORM( oApl:oFam:ABONOS,aGT[3]),;
+                      TRANSFORM( oApl:oFam:DEBITO,aGT[3]) ;
+      HEADERS "AñoMes", "Saldo", "Abonos", "Debitos" ;
+      SIZES 400,450 SIZE 200,60;
+      OF oDlg PIXEL
+    oLbf:nClrBackHead  := oApl:nClrBackHead
+    oLbf:nClrForeHead  := oApl:nClrForeHead
+    oLbf:SetColor(oApl:nClrFore,oApl:nClrBack)
+    oLbf:nClrBackFocus := oApl:nClrBackFocus
+    oLbf:nClrForeFocus := oApl:nClrForeFocus
+    oLbf:nHeaderHeight := 28
+    oLbf:GoTop()
+    oLbf:oFont  := Tfont():New("Ms Sans Serif",0,-10,,.f.)
+    oLbf:aColSizes := {70,100,100,100}
+    oLbf:aHjustify := {2,2,2,2}
+    oLbf:aJustify  := {0,1,1,1}  // O Derecha, 1 Izquierda, 2 Centro
+    oLbf:bKeyDown := {|nKey| If(nKey == VK_RETURN, ::Editar(.f.,oLbf),;
+                             If(GetKeyState(VK_CONTROL) .AND. nKey=78 .OR. nKey=VK_INSERT, ::Editar(.t.,oLbf),;
+                             If(GetKeyState(VK_CONTROL) .AND. nKey=VK_DELETE, DelRecord(oApl:oFam,oLbf), ))) }
+    oLbf:lCellStyle  := oLbf:ladjbrowse  := .f.
+    oLbf:ladjlastcol := .t.
+   MySetBrowse( oLbf,oApl:oFam )
+
+ACTIVATE DIALOG oDlg CENTER
+
+RETURN NIL
+
+//------------------------------------//
+METHOD Editar( lNuevo,oLbx ) CLASS TFactura
+   LOCAL oDlg, oGet := ARRAY(6)
+   LOCAL aED := { .f.,"Modificando Saldo","999,999,999" }
+If ::aPrv[3]
+   If lNuevo
+      If MsgYesNo("Adicionar un Registro","Quiere")
+         aED[2] := "Nuevo Saldo"
+         oApl:oFam:xBlank()
+         oApl:oFam:EMPRESA := oApl:nEmpresa ; oApl:oFam:NUMFAC := oApl:oFac:NUMFAC
+         oApl:oFam:TIPO    := oApl:Tipo     ; oApl:oFam:ANOMES := oApl:cPer
+      EndIf
+   Else
+      oApl:oFam:xLoad()
+   EndIf
+EndIf
+DEFINE DIALOG oDlg TITLE aED[2] FROM 00,02 TO 10,40
+   @ 02,00 SAY "Año y Mes"     OF oDlg RIGHT PIXEL SIZE 46,10
+   @ 02,50 GET oGet[01] VAR oApl:oFam:ANOMES OF oDlg PICTURE "999999";
+      SIZE 30,10 PIXEL
+   @ 14,00 SAY "Saldo Factura" OF oDlg RIGHT PIXEL SIZE 46,10
+   @ 14,50 GET oGet[02] VAR oApl:oFam:SALDO  OF oDlg PICTURE aED[3];
+      SIZE 40,10 PIXEL
+   @ 28,00 SAY "Total Abonos"  OF oDlg RIGHT PIXEL SIZE 46,10
+   @ 28,50 GET oGet[03] VAR oApl:oFam:ABONOS OF oDlg PICTURE aED[3];
+      SIZE 40,10 PIXEL
+   @ 40,00 SAY "Total Debitos" OF oDlg RIGHT PIXEL SIZE 46,10
+   @ 40,50 GET oGet[04] VAR oApl:oFam:DEBITO OF oDlg PICTURE aED[3];
+      SIZE 40,10 PIXEL
+   @ 58,30 BUTTON oGet[05] PROMPT "Grabar"   SIZE 44,12 OF oDlg ACTION  ;
+      (If( EMPTY(oApl:oFam:ANOMES) .OR. oApl:oFam:ABONOS < 0           ,;
+         ( MsgStop("Imposible grabar este Saldo"), oGet[1]:SetFocus() ),;
+         ( aEd[1] := .t., oDlg:End() ))) PIXEL
+   @ 58,80 BUTTON oGet[06] PROMPT "Cancelar" SIZE 44,12 OF oDlg CANCEL ;
+      ACTION oDlg:End() PIXEL
+   ACTIVAGET(oGet)
+ACTIVATE DIALOG oDlg CENTER
+// WHEN ::aPrv[1]
+If aEd[1]
+   If lNuevo
+      oApl:oFam:Append(.t.)
+   Else
+      oApl:oFam:Update(.t.,1)
+   EndIf
+   oLbx:Refresh()
+EndIf
+RETURN NIL
+
+//------------------------------------//
+METHOD PIva( cPer ) CLASS TFactura
+   LOCAL hRes
+If VALTYPE( cPer ) == "D" .AND. EMPTY( cPer )
+   MsgStop( "La fecha no puede ir en BLANCO",">>> OJO <<<" )
+   RETURN .f.
+EndIf
+cPer := If( VALTYPE( cPer ) == "D", NtChr( cPer,"1" ), cPer )
+::lIva   := If( oApl:oFac:FECHA <= CTOD("31.08.2007"), .t., .f. )
+::aM[13] := If( cPer >= "200701", .t., .f. )
+::aM[19] := If( cPer <= "201212", .t., .f. )
+cPer := "SELECT piva, salariomin FROM nomfijos " +;
+        "WHERE periodoi <= '" + cPer +;
+        "' AND periodof >= '" + cPer + "'"
+hRes := If( MSQuery( oApl:oMySql:hConnect,cPer ) ,;
+            MSStoreResult( oApl:oMySql:hConnect ), 0 )
+/*
+ aDF[1] = Salario Minimo
+    [2] = % IVA
+    [3] = % IVA de oEmp:PIVA
+    [4] = % Impoconsumo 8
+*/
+If MSNumRows( hRes ) > 0
+   cPer   := MyReadRow( hRes )
+   cPer[1]:= If( oApl:oEmp:ENLINEA, VAL(cPer[1]), oApl:oEmp:PIVA )
+   ::aDF  := { VAL(cPer[2]),cPer[1],oApl:oEmp:PIVA,8 }
+Else
+   ::aDF  := { 408000,oApl:oEmp:PIVA,oApl:oEmp:PIVA,8 }
+EndIf
+MSFreeResult( hRes )
+If oApl:oEmp:TREGIMEN == 1
+   AFILL( ::aDF,0,2 )
+EndIf
+If ::aM[1] == 0
+   oApl:oFac:PIVA := ::aDF[2]
+Else
+   ::aDF[2] := oApl:oFac:PIVA
+EndIf
+RETURN .t.
+
+//------------------------------------//
+METHOD Barra( oDlg,oLbx ) CLASS TFactura
+   LOCAL oBar, oBot := ARRAY(7)
+DEFINE BUTTONBAR oBar OF oDlg 3DLOOK SIZE 28,28
+
+DEFINE BUTTON RESOURCE "DEDISCO" OF oBar NOBORDER TOOLTIP "Grabar (F11)";
+   ACTION ::Guardar( oDlg,oLbx,.t. )
+DEFINE BUTTON RESOURCE "DELREC"  OF oBar NOBORDER TOOLTIP "Anular Factura (F6)";
+   ACTION ::DelFactu( oDlg,oLbx ) GROUP
+DEFINE BUTTON oBot[4] RESOURCE "ELIMINAR" OF oBar NOBORDER ;
+   TOOLTIP "Eliminar (Ctrl+DEL)" ;
+   ACTION oLbx:KeyDown( VK_DELETE, 0 )
+DEFINE BUTTON RESOURCE "MIRAR"   OF oBar NOBORDER TOOLTIP "Ver los Pagos (F8)";
+   ACTION ::Abonos( oDlg,oLbx ) GROUP
+DEFINE BUTTON oBot[6] RESOURCE "PRINT"    OF oBar NOBORDER ;
+   TOOLTIP "Imprimir" ;
+   ACTION ::Listado( oDlg,oLbx )
+DEFINE BUTTON oBot[7] RESOURCE "QUIT"     OF oBar NOBORDER ;
+   TOOLTIP "Salir"    ;
+   ACTION ( ::Iniciar(), oDlg:End() )    GROUP
+ oBar:bRClicked := {|| NIL }
+ oBar:bLClicked := {|| NIL }
+RETURN oBar
+
+//------------------------------------//
+PROCEDURE CaoLiSal()
+   LOCAL oDlg, oGet := ARRAY(8), aVta := { DATE(),1,.f.,0,"","N" }
+   LOCAL oNi := TNits()
+oNi:New()
+DEFINE DIALOG oDlg TITLE "Listo Saldos de Cartera" FROM 0, 0 TO 12,46
+   @ 02, 00 SAY "Nit por Default Todos" OF oDlg RIGHT PIXEL SIZE 90,10
+   @ 02, 92 BTNGET oGet[1] VAR aVta[4] OF oDlg PICTURE "999999999999";
+      VALID EVAL( {|| If( EMPTY( aVta[4] ), .t.                   ,;
+              (If( oNi:oDb:Seek( {"codigo",aVta[4]} )             ,;
+              ( oGet[8]:Settext( oNi:oDb:NOMBRE), .t. )           ,;
+              ( MsgStop("Este Nit no Existe"),.f.)))) } )          ;
+      SIZE 56,12 PIXEL  RESOURCE "BUSCAR"                          ;
+      ACTION EVAL({|| If(oNi:Mostrar(), (aVta[4] := oNi:oDb:CODIGO,;
+                        oGet[1]:Refresh(), oGet[1]:lValid(.f.)),)})
+   @ 16, 10 SAY oGet[8] VAR aVta[5] OF oDlg PIXEL SIZE 130,12 ;
+      UPDATE COLOR nRGB( 128,0,255 )
+   @ 30, 00 SAY "FECHA DE CORTE [DD.MM.AA]" OF oDlg RIGHT PIXEL SIZE 90,10
+   @ 30, 92 GET oGet[2] VAR aVta[1] OF oDlg  SIZE 40,12 PIXEL
+   @ 44, 00 SAY "PAGINA INICIAL"            OF oDlg RIGHT PIXEL SIZE 90,10
+   @ 44, 92 GET oGet[3] VAR aVta[2] OF oDlg PICTURE "999";
+      VALID Rango( aVta[2],1,999 )  SIZE 24,12 PIXEL
+   @ 58, 00 SAY "DESEA  UN  RESUMEN [S/N]"  OF oDlg RIGHT PIXEL SIZE 90,10
+   @ 58, 92 GET oGet[4] VAR aVta[6] OF oDlg PICTURE "!";
+      VALID aVta[6] $ "NS"  SIZE 08,12 PIXEL
+   @ 58,122 CHECKBOX oGet[5] VAR aVta[3] PROMPT "Vista Previa" OF oDlg;
+       SIZE 60,12 PIXEL
+   @ 74, 50 BUTTON oGet[6] PROMPT "Aceptar"  SIZE 44,12 OF oDlg ACTION;
+      ( oGet[6]:Disable(), ListoSal( aVta ), oGet[6]:Enable(),;
+        oGet[6]:oJump := oGet[1], oGet[1]:SetFocus() ) PIXEL
+   @ 74,100 BUTTON oGet[7] PROMPT "Cancelar" SIZE 44,12 OF oDlg CANCEL;
+      ACTION oDlg:End() PIXEL
+   @ 80, 02 SAY "[CGEFACTU]" OF oDlg PIXEL SIZE 32,10
+   ACTIVAGET(oGet)
+ACTIVATE DIALOG oDlg CENTERED ON INIT ( Empresa( .t. ) )
+RETURN
+
+//------------------------------------//
+PROCEDURE ListoSal( aLS )
+   LOCAL oDPrn, aGT := ARRAY(2,6), aVence := ARRAY(6)
+   LOCAL aRes, hRes, nL, cQry, cPict := "999,999,999.99"
+oDPrn := TDosPrint()
+oDPrn:New( oApl:cPuerto,oApl:cImpres,{"REPORTE DE CUENTAS POR COBRAR",;
+         NtChr( aLS[1],"3" ),SPACE(50) + "--FACTURA-   ---FECHA---   -NOMBRE"+;
+         " DEL CLIENTE-    TOTAL FACTURA   SALDO FACTURA"},aLS[3],aLS[2],2 )
+AEval( aGT, {|x| AFILL( x,0 ) } )
+cQry := "SELECT n.nombre, n.codigo, n.digito, f.numfac, "+;
+        "f.fecha, f.cliente, f.totalfac, s.saldo, f.tipo "+;
+        "FROM cgefactm s, cgefactc f, cadclien n "       +;
+        "WHERE f.empresa = " + LTRIM(STR(oApl:nEmpresa)) +;
+         " AND f.fecha <= "  + xValToChar( aLS[1] )      + If( aLS[4] > 0,;
+         " AND f.codigo_nit = " + LTRIM(STR(oApl:oNit:CODIGO_NIT)), "" ) +;
+         " AND s.empresa = f.empresa"                    +;
+         " AND s.numfac = f.numfac AND s.tipo = s.tipo"  +;
+         " AND s.anomes = (SELECT MAX(m.anomes) FROM cgefactm m "+;
+                          "WHERE m.empresa = f.empresa"  +;
+                           " AND m.numfac  = f.numfac"   +;
+                           " AND m.tipo    = f.tipo"     +;
+         " AND m.anomes <= '" + NtChr( aLS[1],"1" ) + "')" +;
+         " AND s.saldo <> 0 AND n.codigo_nit = f.codigo_nit " +;
+        "ORDER BY n.nombre, f.fecha, f.numfac"
+//       " AND f.Tipo    = " + xValToChar( oApl:Tipo )   + If( aLS[4] > 0,;
+hRes := If( MSQuery( oApl:oMySql:hConnect,cQry ) ,;
+            MSStoreResult( oApl:oMySql:hConnect ), 0 )
+If (nL := MSNumRows( hRes )) > 0
+   aRes := MyReadRow( hRes )
+   AEval( aRes, { | xV,nP | aRes[nP] := MyClReadCol( hRes,nP ) } )
+   AFILL( aVence,0 )
+   aLS[5] := aRes[1]
+   cQry   := PADR(aRes[1],36) + TRANSFORM( aRes[2],"999,999,999-" ) + STR(aRes[3],1)
+EndIf
+While nL > 0
+   oApl:nSaldo := aRes[8]
+   Vence( aLS[1] - aRes[5],@aVence )
+   oDPrn:Titulo( 130 )
+   If oDPrn:nPage >= oDPrn:nPagI .AND. aLS[6] == "N"
+      If aGT[1][5] == 0
+         oDPrn:Say( oDPrn:nL,01,cQry )
+      EndIf
+      oDPrn:Say( oDPrn:nL, 50,STR(aRes[4])+aRes[9] )
+      oDPrn:Say( oDPrn:nL, 63,NtChr( aRes[5],"2" ) )
+      oDPrn:Say( oDPrn:nL, 77,aRes[6],20 )
+      oDPrn:Say( oDPrn:nL,100,TRANSFORM(aRes[7],cPict) )
+      oDPrn:Say( oDPrn:nL,116,TRANSFORM(aRes[8],cPict) )
+      oDPrn:nL ++
+   EndIf
+   aGT[1][5] += aRes[8]
+   If (nL --) > 1
+      aRes := MyReadRow( hRes )
+      AEval( aRes, {| xV,nP | aRes[nP] := MyClReadCol( hRes,nP ) } )
+   EndIf
+   If nL == 0 .OR. aRes[1] # aLS[5]
+      If oDPrn:nPage >= oDPrn:nPagI
+         AEval( aVence, {|nVal,nP| aGT[2][nP] += nVal } )
+         If aLS[6] == "N"
+            oDPrn:Say(++oDPrn:nL, 97,"TOTAL CLIENTE --> $"+oDPrn:CPIBold,,,1 )
+            oDPrn:Say(  oDPrn:nL,116,TRANSFORM( aGT[1][5],cPict )+oDPrn:CPIBoldN )
+         Else
+            oDPrn:Say(  oDPrn:nL,01,cQry,,,1 )
+            oDPrn:Say(  oDPrn:nL,116,TRANSFORM( aGT[1][5],cPict ) )
+            oDPrn:nL ++
+            Vence( 0,aVence,50,oDPrn )
+         EndIf
+      EndIf
+      oDPrn:nL += 2
+      If aLS[4] > 0
+         aGT[1][2] += aGT[1][5]
+      EndIf
+      AFILL( aVence,0 )
+      aGT[1][4] ++
+      aGT[1][5] := 0
+      aLS[5] := aRes[1]
+      aLS[4] := aRes[2]
+      cQry   := PADR(aRes[1],36) + TRANSFORM( aRes[2],"999,999,999-" ) + STR(aRes[3],1)
+   EndIf
+EndDo
+MSFreeResult( hRes )
+If aGT[1][4] > 0
+   FOR nL := 1 TO 6
+      aVence[nL] := aGT[2][nL]
+   NEXT
+   oDPrn:Say(  oDPrn:nL, 01,REPLICATE("_",129),,,1 )
+   oDPrn:Say(++oDPrn:nL, 01,STR( aGT[1][4],3 ) + "  SALDOS",,,1 )
+   oDPrn:Say(  oDPrn:nL,116,TRANSFORM(aGT[2][6],cPict) )
+   oDPrn:Say(++oDPrn:nL, 01,REPLICATE("_",129),,,1 )
+   oDPrn:nL += If( oDPrn:nL+10 > oDPrn:nLength, oDPrn:nLength-oDPrn:nL, 2 )
+   oDPrn:Titulo( 130 )
+   oDPrn:Say( oDPrn:nL  ,10,"TOTAL EMPRESAS ------------> $" + NtChr( aGT[1][2],cPict ) )
+   oDPrn:Say( oDPrn:nL+2,10,"TOTAL CUENTAS POR COBRAR --> $" + NtChr( aGT[2][6],cPict ) )
+   oDPrn:nL += 6
+   Vence( 0,aVence,10,oDPrn )
+EndIf
+oDPrn:NewPage()
+oDPrn:End()
+aLS[4] := 0
+RETURN
+
+//------------------------------------//
+PROCEDURE Vence( nDias,aVence,nC,oDPrn )
+If nC == NIL
+   do Case
+   Case nDias < 30
+      aVence[1] += oApl:nSaldo
+   Case nDias >= 31 .AND. nDias <= 60
+      aVence[2] += oApl:nSaldo
+   Case nDias >= 61 .AND. nDias <= 90
+      aVence[3] += oApl:nSaldo
+   Case nDias >= 91 .AND. nDias <= 180
+      aVence[4] += oApl:nSaldo
+   OtherWise
+      aVence[5] += oApl:nSaldo
+   EndCase
+      aVence[6] += oApl:nSaldo
+Else
+   oDPrn:Say( oDPrn:nL,nC," A 30 Dias     A 60 Dias     A 90 Dias    A 180 Dias  Sobre 180 Dias",,,1 )
+   oDPrn:nL ++
+   oDPrn:Say( oDPrn:nL,nC   ,TRANSFORM(aVence[1],"999,999,999"),,,1 )
+   oDPrn:Say( oDPrn:nL,nC+14,TRANSFORM(aVence[2],"999,999,999") )
+   oDPrn:Say( oDPrn:nL,nC+28,TRANSFORM(aVence[3],"999,999,999") )
+   oDPrn:Say( oDPrn:nL,nC+42,TRANSFORM(aVence[4],"999,999,999") )
+   oDPrn:Say( oDPrn:nL,nC+56,TRANSFORM(aVence[5],"999,999,999") )
+   If aVence[6] > 0
+      oDPrn:nL ++ //:= (++nLi)
+      oDPrn:Say( oDPrn:nL,nC+04,NtChr( ROUND( aVence[1]/aVence[6]*100,2 ),"999.99%" ),,,1)
+      oDPrn:Say( oDPrn:nL,nC+18,NtChr( ROUND( aVence[2]/aVence[6]*100,2 ),"999.99%" ))
+      oDPrn:Say( oDPrn:nL,nC+32,NtChr( ROUND( aVence[3]/aVence[6]*100,2 ),"999.99%" ))
+      oDPrn:Say( oDPrn:nL,nC+46,NtChr( ROUND( aVence[4]/aVence[6]*100,2 ),"999.99%" ))
+      oDPrn:Say( oDPrn:nL,nC+60,NtChr( ROUND( aVence[5]/aVence[6]*100,2 ),"999.99%" ))
+   EndIf
+   oDPrn:nL += 2
+EndIf
+RETURN

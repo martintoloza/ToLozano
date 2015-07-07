@@ -1,0 +1,102 @@
+CODIGO      , N,  10,   0          CADCLIEN
+DIGITO      , N,   1,   0
+TIPOCOD     , N,   1,   0
+NOMBRE      , C,  40,   0
+TELEFONO    , C,  16,   0
+FAX         , C,   8,   0
+DIRECCION   , C,  40,   0
+EMAIL       , C,  30,   0
+CIUDAD      , C,  12,   0
+CODIGO_NIT  , N,   5,   0
+
+FEC_HOY     , D,   8,   0          CADEMPRE
+EMPRESA     , N,   2,   0
+PUC         , N,   2,   0
+LOCALIZ     , C,   3,   0
+TITULAR     , C,   3,   0
+NIT         , C,  16,   0
+NOMBRE      , C,  35,   0
+NUMFACU     , N,  10,   0
+NUMFACD     , N,  10,   0
+PIVA        , N,   6,   2
+MAYBAL      , N,   6,   0
+DIARIO      , N,   6,   0
+AUXINV      , N,   6,   0
+ENLINEA     , L,   1,   0
+NUMINGRESO  , N,   5,   0
+DIRECCION   , C,  30,   0
+TELEFONO    , C,  15,   0
+CIUDAD      , C,  15,   0
+GERENTE     , C,  30,   0
+CONTADOR    , C,  30,   0
+INGRESO     , N,   6,   0
+EGRESO      , N,   6,   0
+
+EMPRESA     , N,   2,   0          CGEACUMC
+ANO_MES     , C,   6,   0
+CUENTA      , C,  10,   0
+VALOR_DEB   , N,  14,   2
+VALOR_CRE   , N,  14,   2
+
+EMPRESA     , N,   2,   0          CGEACUMN
+ANO_MES     , C,   6,   0
+CUENTA      , C,  10,   0
+CODIGO      , C,  10,   0
+CODIGO_NIT  , N,   5,   0
+VALOR_DEB   , N,  14,   2
+VALOR_CRE   , N,  14,   2
+VALOR_RET   , N,  14,   2
+
+EMPRESA     , N,   2,   0          CGECNTRL
+ANO_MES     , C,   6,   0
+CONTROL     , N,   6,   0
+COMPRO_PRV  , N,   6,   0
+CONTROL_IN  , N,   6,   0
+CONTROL_DE  , N,   6,   0
+CONTRO_NOT  , N,   6,   0
+
+EMPRESA     , N,   2,   0          CGEMOVC
+ANO_MES     , C,   6,   0
+FECHA       , D,   8,   0
+FUENTE      , N,   2,   0
+COMPROBANT  , N,   6,   0
+CONTROL     , N,   6,   0
+CONCEPTO    , C,  40,   0
+ESTADO      , N,   1,   0
+CODIGONIT   , N,   5,   0
+VALORB      , N,  14,   2
+CONSECUTIV  , N,   3,   0
+
+
+
+
+
+EMPRESA     , N,   2,   0          CGEMOVD
+ANO_MES     , C,   6,   0
+CONTROL     , N,   6,   0
+CUENTA      , C,  10,   0
+INFA        , C,  10,   0
+INFB        , C,  10,   0
+INFC        , C,  10,   0
+INFD        , C,  10,   0
+CODIGO_NIT  , N,   5,   0
+VALOR_DEB   , N,  14,   2
+VALOR_CRE   , N,  14,   2
+
+EMPRESA     , N,   2,   0          CGEPLAN
+CUENTA      , C,  10,   0
+NIVEL       , N,   1,   0
+NOMBRE      , C,  40,   0
+INFA        , C,  10,   0
+INFB        , C,  10,   0
+INFC        , C,  10,   0
+INFD        , C,  10,   0
+PAGOS_TERC  , L,   1,   0
+DB_CR       , N,   1,   0
+ESTADO      , C,   1,   0
+
+EMPRESA     , N,   2,   0          CGEVARIA
+TIPO        , C,   1,   0
+CUENTA      , C,  10,   0
+CODIGO      , C,  10,   0
+NOMBRE      , C,  30,   0
