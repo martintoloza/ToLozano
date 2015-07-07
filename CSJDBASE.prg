@@ -259,7 +259,6 @@ Case cTabla == "cadfactc"
                 { "tipo"      , "C", 01, 00, },;
                 { "fechoy"    , "D", 08, 00, },;
                 { "cliente"   , "C", 30, 00, },;
-                { "orden"     , "C", 20, 00, },;
                 { "codigo_nit", "N", 05, 00, },;
                 { "turista_id", "N", 11, 00, },;
                 { "fechaent"  , "D", 08, 00, },;
@@ -270,7 +269,9 @@ Case cTabla == "cadfactc"
                 { "llegada"   , "E", 08, 00, },;
                 { "salida"    , "E", 08, 00, },;
                 { "indicador" , "C", 01, 00, },;
-                { "paginas"   , "N", 02, 00, },;
+                { "noches"    , "N", 02, 00, },;
+                { "noche_ext" , "N", 02, 00, },;
+                { "amigos"    , "N", 02, 00, },;
                 { "retfte"    , "N", 10, 00, },;
                 { "retica"    , "N", 10, 00, },;
                 { "retiva"    , "N", 10, 00, },;

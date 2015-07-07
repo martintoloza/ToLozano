@@ -65,17 +65,14 @@ DEFINE DIALOG oDlg FROM 0, 0 TO 470, 580 PIXEL;
       SIZE 162,10 UPDATE COLOR nRGB( 128,0,255 )
    @ 40, 00 SAY "Fecha Llegada"           OF oDlg RIGHT  PIXEL SIZE 40,10
    @ 40, 42 SAY oF:oG[5] VAR oF:aCli[1]   OF oDlg BORDER PIXEL SIZE 76,10 UPDATE
-   @ 40,120 SAY "Nro.Noches"              OF oDlg RIGHT  PIXEL SIZE 40,10
-   @ 40,162 GET oF:oG[6] VAR oApl:oFac:PAGINAS OF oDlg PICTURE "99";
+   @ 40,194 SAY "No. de Noches"           OF oDlg RIGHT  PIXEL SIZE 40,10
+   @ 40,236 GET oF:oG[6] VAR oApl:oFac:PAGINAS OF oDlg PICTURE "99";
       VALID( If( oApl:oFac:PAGINAS > 0,;
-               ( oApl:oFac:FECHAENT := oApl:oFac:FECHOY + 1,;
-                 oF:oG[7]:REFRESH(), .t. ) ,;
+               ( oF:Estadia( 1 ), oF:oG[8]:REFRESH(), .t. ) ,;
                ( MsgStop( "Nro. de Noches debe ser mayor de 0" ), .f. ) ));
-      SIZE 16,10 PIXEL UPDATE
-   @ 40,182 SAY "Salida Provisional"      OF oDlg RIGHT  PIXEL SIZE 50,10
-   @ 40,236 SAY oF:oG[7] VAR oApl:oFac:FECHAENT OF oDlg ;
-      BORDER PIXEL SIZE 42,10 UPDATE
-//   @ 40,236 SAY oF:oG[6] VAR oF:nDias     OF oDlg PICTURE "999,999";
+      SIZE 20,10 PIXEL UPDATE
+   @ 40,258 SAY oF:oG[7] VAR oApl:oFac:NOCHE_EXT OF oDlg PICTURE "999";
+      BORDER PIXEL SIZE 20,10 UPDATE
    @ 52, 00 SAY "Fecha Salida"            OF oDlg RIGHT  PIXEL SIZE 40,10
    @ 52, 42 SAY oF:oG[08] VAR oF:aCli[2]  OF oDlg BORDER PIXEL SIZE 76,10 UPDATE
    @ 52,120 SAY oF:oG[09] VAR oF:aM[7]    OF oDlg COLOR nRGB( 255,0,0 );
@@ -83,7 +80,7 @@ DEFINE DIALOG oDlg FROM 0, 0 TO 470, 580 PIXEL;
    @ 52,182 SAY "Valor Factura"           OF oDlg RIGHT  PIXEL SIZE 50,10
    @ 52,236 SAY oF:oG[10] VAR oF:aM[6]    OF oDlg PICTURE "999,999,999";
       BORDER PIXEL SIZE 42,10 UPDATE
-   @ 64,172 SAY "Saldo"                   OF oDlg RIGHT PIXEL SIZE 60,10
+   @ 64,194 SAY "Saldo"                   OF oDlg RIGHT PIXEL SIZE 40,10
    @ 64,236 SAY oF:oG[11] VAR oApl:nSaldo OF oDlg PICTURE "999,999,999";
       BORDER PIXEL SIZE 42,10 UPDATE
 
@@ -251,13 +248,13 @@ CREATE TABLE `cadfacte` (
 CLASS TCotizar FROM TFactura
 
  DATA oB            INIT ARRAY(9)
- DATA nDias, oTP
+ DATA nDias, nPago, oTP
  METHOD AdicArray()
  METHOD Barrecep( oDlg,oLbx,oLbt )
  METHOD Busacom( xBuscar,oNi,nA )
  METHOD EditAcomp( oLbt,nA,nF )
  METHOD Guardar( oDlg,oLbx )
- METHOD Especial( nR,lNew,lCam )
+ METHOD Estadia( nR )
  METHOD Borrar( nR,nT )
  METHOD Facturar( oDlg,oLbx )
  METHOD Listado( oDlg,oLbx )
@@ -293,23 +290,17 @@ Else
    oApl:oTur:Seek( {"turista_id",oApl:oFac:TURISTA_ID} )
    ::aM[3] := oApl:oTur:DOCIDEN
    ::aCli := Buscar( "SELECT DATE_FORMAT(fecha_ent,'%d.%m.%Y a las %h:%i %p'), "+;
-                            "DATE_FORMAT(fecha_sal,'%d.%m.%Y a las %h:%i %p')  "+;
+                            "DATE_FORMAT(fecha_sal,'%d.%m.%Y a las %h:%i %p'), estado "+;
                      "FROM cadfacte WHERE factc_id = " + LTRIM(STR(oApl:oFac:ROW_ID)),"CM",,8 )
    ::aVen := Buscar( "SELECT t.dociden, t.nombres, t.turista_id, g.row_id "+;
                      "FROM turista t, cadfactg g "        +;
                      "WHERE g.turista_id = t.turista_id " +;
                        "AND g.factc_id   = " + LTRIM(STR(oApl:oFac:ROW_ID)),"CM",,9 )
 EndIf
-If LEN( ::aCli ) == 0
-   ::aCli := { Buscar("SELECT DATE_FORMAT(NOW(),'%d.%m.%Y a las %h:%i %p') FROM dual","CM",,8),"" }
-//SELECT DATE_FORMAT(DATE_ADD( NOW(), INTERVAL 2 DAY),'%d.%m.%Y a las %h:%i %p') FROM dual
-EndIf
-MsgInfo( LEN( ::aCli ) )
+::Estadia( 0 )
 If LEN( ::aVen ) == 0
    AADD( ::aVen,{ SPACE(15), SPACE(50), 0, 0 } )
 EndIf
-   ::aCli[1] := NtChr( CTOD(LEFT(::aCli[1],10)),"2" ) + RIGHT(::aCli[1],15)
-   ::aCli[2] := NtChr( CTOD(LEFT(::aCli[2],10)),"2" ) + RIGHT(::aCli[2],15)
 SysRefresh()
 RETURN NIL
 
@@ -420,8 +411,9 @@ If ::aM[09] > 0
    NEXT nR
     Super:Guardar( oDlg,oLbx,1 )
    If ::aM[17]
-      sQry := "INSERT INTO cadfacte VALUES ( null, " + LTRIM(STR(oApl:oFac:ROW_ID)) +;
-              ", NOW(), null, 'P' )"
+      sQry := "INSERT INTO cadfacte VALUES ( null, " + LTRIM(STR(oApl:oFac:ROW_ID))+;
+              ", NOW(), DATE_ADD( NOW(), INTERVAL"   + STR(oApl:oFac:PAGINAS,3)    +;
+              " DAY), 'P' )"
       Guardar( sQry,"cadfacte" )
    EndIf
    FOR nR := 1 TO LEN( ::aVen )
@@ -441,72 +433,36 @@ EndIf
 RETURN NIL
 
 //------------------------------------//
-METHOD Especial( nR,lNew,lCam ) CLASS TCotizar
-   LOCAL aE, aEsp, aSal, nE, nCan, nEsp, nSal
-If ::oDb:CLASE == 1 .AND. ::aV[nR,16] == "M"
-   oApl:cPer:= NtChr( ::oDb:FECHA,"1" )
-   aSal := Especiales( ::aV[nR,01] )
-   nSal := LEN( aSal )
-   aE := { "INSERT INTO cadcotie VALUES ( null, "  + LTRIM(STR(::oVen:ROW_ID)) +;
-           ", " + LTRIM(STR(oApl:nEmpresa)) + ", " + LTRIM(STR(::oVen:NUMERO)) + ", ","",0 }
-   If lNew
-      FOR nE := 1 TO nSal
-         aSal[nE,2] *= ::aV[nR,4]
-         aE[2] := xValToChar(aSal[nE,1])  + ", "  + LTRIM(STR(aSal[nE,2])) + ", " +;
-                  xValToChar(aSal[nE,3])  + ", "  + LTRIM(STR(aSal[nE,4])) + ", " +;
-                  LTRIM(STR(aSal[nE,5])) + " )"
-         Guardar( aE[1] + aE[2],"cadcotie" )
-         Actualiz( aSal[nE,1],aSal[nE,2],::oDb:FECHA,2,aSal[nE,4],aSal[nE,3] )
-      NEXT nE
-   Else
-      aEsp := Buscar( { "cotid_id",::oVen:ROW_ID},"cadcotie",;
-                        "row_id, codigo, cantidad, pcosto, unidadmed",9 )
-      nEsp := LEN( aEsp )
-      If lCam
-         AEVAL( aEsp, {|a| Actualiz( a[2],-a[3],::oDb:FECHA,2,a[4],a[5] ), a[3] := 0 } )
-      EndIf
-      nCan := MIN( nEsp,nSal )
-      FOR nE := 1 TO nCan
-           aE[3]    := aSal[nE,2] * ::aV[nR,4] - aEsp[nE,3]
-         aEsp[nE,3] := aSal[nE,2] * ::aV[nR,4]
-         Actualiz( aSal[nE,1],aE[3],::oDb:FECHA,2,aSal[nE,4],aSal[nE,3] )
-         aE[2] := "UPDATE cadcotie SET codigo = " + xValToChar(aSal[nE,1]) +;
-                 ", cantidad = " + LTRIM(STR(aEsp[nE,3])) +;
-                ", unidadmed = " + xValToChar(aSal[nE,3]) +;
-                   ", pcosto = " + LTRIM(STR(aSal[nE,4])) +;
-                   ", pventa = " + LTRIM(STR(aSal[nE,5])) +;
-              " WHERE row_id = " + LTRIM(STR(aEsp[nE,1]))
-         Guardar( aE[2],"cadcotie" )
-      NEXT nE
-      If nEsp > nSal
-         FOR nE := nCan+1 TO nEsp
-            Actualiz( aEsp[nE,2],aEsp[nE,3],::oDb:FECHA,2,aEsp[nE,4],aEsp[nE,5] )
-            Guardar( "DELETE FROM cadcotie WHERE row_id = " + LTRIM(STR(aEsp[nE,1])),"cadcotie" )
-         NEXT nE
-      ElseIf nSal > nEsp
-         FOR nE := nCan+1 TO nSal
-            aSal[nE,2] *= ::aV[nR,4]
-            aE[2] := xValToChar(aSal[nE,1])  + ", "  + LTRIM(STR(aSal[nE,2])) + ", " +;
-                     xValToChar(aSal[nE,3])  + ", "  + LTRIM(STR(aSal[nE,4])) + ", " +;
-                      LTRIM(STR(aSal[nE,5])) + " )"
-            Guardar( aE[1] + aE[2],"cadcotie" )
-            Actualiz( aSal[nE,1],aSal[nE,2],::oDb:FECHA,2,aSal[nE,4],aSal[nE,3] )
-         NEXT nE
-      EndIf
-   EndIf
-   //Calcular el Precio Costo para la Minuta
-   aE[2] := "SELECT e.cantidad, e.pcosto, e.unidadmed, i.unidadmed, i.codcon "+;
-            "FROM cadinven i, cadcotie e " +;
-            "WHERE e.codigo   = i.codigo"  +;
-             " AND e.cotid_id = " + LTRIM(STR(::oVen:ROW_ID))
-   nSal := Especiales( aE[2],::aV[nR,4] )
-   If nSal # 0 .AND. nSal # ::oVen:PCOSTO
-      ::oVen:PCOSTO := nSal
-      ::oVen:Update( .f.,1 )
+METHOD Estadia( nR ) CLASS TCotizar
+   LOCAL sFec
+If LEN( ::aCli ) == 0
+   ::aCli := Buscar("SELECT DATE_FORMAT(NOW(),'%d.%m.%Y a las %h:%i %p'), "                  +;
+                    "DATE_FORMAT(DATE_ADD( NOW(), INTERVAL 1 DAY),'%d.%m.%Y a las %h:%i %p')"+;
+                    ", 'P' FROM dual","CM",,8 )
+EndIf
+If nR == 0
+   ::aCli[1] := NtChr( CTOD(LEFT(::aCli[1],10)),"2" ) + RIGHT(::aCli[1],15)
+   ::aCli[2] := NtChr( CTOD(LEFT(::aCli[2],10)),"2" ) + RIGHT(::aCli[2],15)
+ElseIf nR == 1
+   oApl:oFac:FECHAENT := oApl:oFac:FECHOY + oApl:oFac:PAGINAS
+   sFec := Buscar( "SELECT DATE_FORMAT(DATE_ADD( NOW(), INTERVAL"+ STR(oApl:oFac:PAGINAS,3) +;
+                   " DAY),'%d.%m.%Y a las %h:%i %p') FROM dual","CM",,8 )
+   ::aCli[2] := NtChr( CTOD(LEFT(sFec,10)),"2" ) + RIGHT(sFec,15)
+EndIf
+
+//cQry := "SELECT TIMESTAMPDIFF( day, e.fecha_ent, NOW() ) "+;
+//cQry := "SELECT TIMESTAMPDIFF( day, CAST(e.fecha_ent AS DATE), CURDATE() ) "+;
+If ::aCli[3] == "P"
+   ::nDias := Buscar( "SELECT DATEDIFF( CURDATE(), CAST(fecha_ent AS DATE) ) "+;
+                      "FROM cadfacte WHERE factc_id = " + LTRIM(STR(oApl:oFac:ROW_ID)),"CM",,8,,4 )
+   If ::nDias > 0
+      oApl:nSaldo := (::aM[6] / oApl:oFac:PAGINAS) * ::nDias
+      ::aM[7]     := "Debe" + STR(::nDias,4) + " Noches"
    EndIf
 EndIf
 RETURN NIL
 
+//------------------------------------//
 METHOD Borrar( nA,nT ) CLASS TCotizar
    LOCAL aEsp, nR
 If ::oDb:CLASE == 1
@@ -525,18 +481,56 @@ RETURN NIL
 
 //------------------------------------//
 METHOD Facturar() CLASS TCotizar
-   LOCAL cQry
-//cQry := "SELECT TIMESTAMPDIFF( day, e.fecha_ent, NOW() ) "+;
-//cQry := "SELECT TIMESTAMPDIFF( day, CAST(e.fecha_ent AS DATE), CURDATE() ) "+;
-cQry := "SELECT DATEDIFF( CURDATE(), CAST(e.fecha_ent AS DATE) ) "+;
-        "FROM cadfacte e, cadfactc c "                    +;
-        "WHERE c.row_id  = e.factc_id "                   +;
-         " AND c.empresa = " + LTRIM(STR(oApl:nEmpresa))  +;
-         " AND c.numfac  = " + LTRIM(STR(::aM[2]))        +;
-         " AND c.tipo    = 'A'"
-::nDias := Buscar( cQry,"CM",,8,,4 )
-::oG[1]:Refresh()
-::oG[1]:SetFocus()
+   LOCAL oDlg, oGet := ARRAY(13)
+//::oG[1]:Refresh()
+//::oG[1]:SetFocus()
+oApl:oFac:Seek( {"empresa",oApl:nEmpresa,"numfac",::aM[2],"tipo",oApl:Tipo} )
+ ::AdicArray()
+ ::nPago := oApl:nSaldo
+DEFINE DIALOG oDlg FROM 0, 0 TO 270, 580 PIXEL;
+   TITLE "CHECK OUT"
+   @ 02, 00 SAY "Nro. Factura" OF oDlg RIGHT PIXEL SIZE 50,10
+   @ 02, 52 SAY oGet[1] VAR ::aM[2] OF oDlg  PICTURE "9999999999";
+      BORDER PIXEL SIZE 40,10
+   @ 14, 00 SAY "Documento ID" OF oDlg RIGHT PIXEL SIZE 50,10
+   @ 14, 52 SAY oGet[2] VAR ::aM[3]      OF oDlg BORDER PIXEL SIZE 60,10
+   @ 14,114 SAY oGet[3] VAR oApl:oFac:CLIENTE OF oDlg BORDER PIXEL ;
+      SIZE 162,10 COLOR nRGB( 128,0,255 )
+   @ 26, 00 SAY "Fecha Llegada"          OF oDlg RIGHT  PIXEL SIZE 50,10
+   @ 26, 52 SAY oGet[4] VAR ::aCli[1]    OF oDlg BORDER PIXEL SIZE 76,10 UPDATE
+   @ 26,194 SAY "No. de Noches"          OF oDlg RIGHT  PIXEL SIZE 40,10
+   @ 26,236 SAY oGet[5] VAR oApl:oFac:PAGINAS OF oDlg PICTURE "99";
+      BORDER PIXEL SIZE 20,10
+   @ 26,258 SAY oGet[6] VAR oApl:oFac:NOCHE_EXT OF oDlg PICTURE "999";
+      BORDER PIXEL SIZE 20,10
+   @ 38, 00 SAY "Fecha Salida"           OF oDlg RIGHT  PIXEL SIZE 50,10
+   @ 38, 52 SAY oGet[7] VAR ::aCli[2]    OF oDlg BORDER PIXEL SIZE 76,10
+   @ 38,182 SAY "Valor Factura"          OF oDlg RIGHT  PIXEL SIZE 50,10
+   @ 38,236 SAY oGet[9] VAR ::aM[6]      OF oDlg PICTURE "999,999,999";
+      BORDER PIXEL SIZE 42,10
+   @ 50,124 SAY oGet[8] VAR ::aM[7]      OF oDlg COLOR nRGB( 255,0,0 );
+      BORDER PIXEL SIZE 70,10
+   @ 50,194 SAY "Saldo"                  OF oDlg RIGHT PIXEL SIZE 40,10
+   @ 50,236 SAY oGet[10] VAR oApl:nSaldo OF oDlg PICTURE "999,999,999";
+      BORDER PIXEL SIZE 42,10
+   @ 62, 00 SAY "Noches a Renovar"       OF oDlg RIGHT  PIXEL SIZE 50,10
+   @ 62, 52 GET oGet[11] VAR ::nDias     OF oDlg PICTURE "99";
+      VALID( If( ::nDias > 0,;
+               ( ::nPago := (::aM[6] / oApl:oFac:PAGINAS) * ::nDias,;
+                 oGet[12]:REFRESH(), .t. ) ,;
+               ( MsgStop( "Nro. de Noches debe ser mayor de 0" ), .f. ) ));
+      SIZE 20,10 PIXEL
+   @ 62,194 SAY "Total a Pagar"          OF oDlg RIGHT PIXEL SIZE 40,10
+   @ 62,236 SAY oGet[12] VAR ::nPago     OF oDlg PICTURE "999,999,999";
+      BORDER PIXEL SIZE 42,10 UPDATE
+// @ 52, 50 BUTTON oGet[6] PROMPT "Aceptar"  SIZE 44,12 OF oDlg ;
+//    ACTION ( oGet[6]:Disable(), oM:MediosDT(), oDlg:End() ) PIXEL
+   @ 76,100 BUTTON oGet[13] PROMPT "Cancelar" SIZE 44,12 OF oDlg CANCEL;
+      ACTION oDlg:End() PIXEL
+
+   ACTIVAGET( oGet )
+ACTIVATE DIALOG oDlg CENTERED
+
 /*
 ::aM[5] := "INSERT INTO cadfactd (empresa, numfac, tipo, "+;
            "codigo, cantidad, unidadmed, precioven, "     +;
