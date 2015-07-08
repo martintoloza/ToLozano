@@ -25,8 +25,10 @@ cTit := "Recepción - Facturas || "
 oApl:oEmp:Seek( {"localiz",oApl:oEmp:TITULAR} )
 nEmpresa( .t. )
 ASIZE( oF:oG,11 )
+oF:dFec := oApl:oEmp:FEC_HOY
 oF:Iniciar( ,,"A" )
 oF:AdicArray()
+
 DEFINE DIALOG oDlg FROM 0, 0 TO 470, 580 PIXEL;
    TITLE cTit + oApl:cEmpresa
    @ 16, 00 SAY "Nro. Factura" OF oDlg RIGHT PIXEL SIZE 40,10
@@ -248,7 +250,7 @@ CREATE TABLE `cadfacte` (
 CLASS TCotizar FROM TFactura
 
  DATA oB            INIT ARRAY(9)
- DATA nDias, nPago, oTP
+ DATA dFec, nDias, oTP
  METHOD AdicArray()
  METHOD Barrecep( oDlg,oLbx,oLbt )
  METHOD Busacom( xBuscar,oNi,nA )
@@ -327,7 +329,8 @@ DEFINE BUTTON ::oB[4] RESOURCE "NEW"       OF oBar NOBORDER ;
 DEFINE BUTTON ::oB[6] RESOURCE "MONEY"     OF oBar NOBORDER ;
    TOOLTIP "Check UP [F8]"  ;
    ACTION EVAL({|| If( ::oTP:Muestra(), (::aM[2] := ::oTP:oDb:NUMFAC,;
-                       ::Facturar(), __Keyboard( CHR( VK_RETURN ) ) ), ) } )
+                       ::Facturar( oDlg,oLbx ) ), ) } )
+//                     ::Facturar(), __Keyboard( CHR( VK_RETURN ) ) ), ) } )
 DEFINE BUTTON ::oB[7] RESOURCE "MIRAR"     OF oBar NOBORDER ;
    TOOLTIP "Pagos a Cartera"     ;
    ACTION MsgInfo( "Dispobible para lo que SEA" )
@@ -453,7 +456,7 @@ EndIf
 //cQry := "SELECT TIMESTAMPDIFF( day, e.fecha_ent, NOW() ) "+;
 //cQry := "SELECT TIMESTAMPDIFF( day, CAST(e.fecha_ent AS DATE), CURDATE() ) "+;
 If ::aCli[3] == "P"
-   ::nDias := Buscar( "SELECT DATEDIFF( CURDATE(), CAST(fecha_ent AS DATE) ) "+;
+   ::nDias := Buscar( "SELECT DATEDIFF( CURDATE(), CAST(fecha_sal AS DATE) ) "+;
                       "FROM cadfacte WHERE factc_id = " + LTRIM(STR(oApl:oFac:ROW_ID)),"CM",,8,,4 )
    If ::nDias > 0
       oApl:nSaldo := (::aM[6] / oApl:oFac:PAGINAS) * ::nDias
@@ -480,90 +483,169 @@ EndIf
 RETURN NIL
 
 //------------------------------------//
-METHOD Facturar() CLASS TCotizar
-   LOCAL oDlg, oGet := ARRAY(13)
-//::oG[1]:Refresh()
-//::oG[1]:SetFocus()
+METHOD Facturar( oDlg,oLbx ) CLASS TCotizar
+   LOCAL aPG, oDlp, oLbs, oGet := ARRAY(15)
 oApl:oFac:Seek( {"empresa",oApl:nEmpresa,"numfac",::aM[2],"tipo",oApl:Tipo} )
  ::AdicArray()
- ::nPago := oApl:nSaldo
-DEFINE DIALOG oDlg FROM 0, 0 TO 270, 580 PIXEL;
+ aPG := { .f.,1,oApl:nSaldo,"" }
+DEFINE DIALOG oDlp FROM 0, 0 TO 290, 580 PIXEL;
    TITLE "CHECK OUT"
-   @ 02, 00 SAY "Nro. Factura" OF oDlg RIGHT PIXEL SIZE 50,10
-   @ 02, 52 SAY oGet[1] VAR ::aM[2] OF oDlg  PICTURE "9999999999";
+   @ 02, 00 SAY "Nro. Factura" OF oDlp RIGHT PIXEL SIZE 50,10
+   @ 02, 52 SAY oGet[1] VAR ::aM[2] OF oDlp  PICTURE "9999999999";
       BORDER PIXEL SIZE 40,10
-   @ 14, 00 SAY "Documento ID" OF oDlg RIGHT PIXEL SIZE 50,10
-   @ 14, 52 SAY oGet[2] VAR ::aM[3]      OF oDlg BORDER PIXEL SIZE 60,10
-   @ 14,114 SAY oGet[3] VAR oApl:oFac:CLIENTE OF oDlg BORDER PIXEL ;
+   @ 14, 00 SAY "Documento ID" OF oDlp RIGHT PIXEL SIZE 50,10
+   @ 14, 52 SAY oGet[2] VAR ::aM[3]      OF oDlp BORDER PIXEL SIZE 60,10
+   @ 14,114 SAY oGet[3] VAR oApl:oFac:CLIENTE OF oDlp BORDER PIXEL ;
       SIZE 162,10 COLOR nRGB( 128,0,255 )
-   @ 26, 00 SAY "Fecha Llegada"          OF oDlg RIGHT  PIXEL SIZE 50,10
-   @ 26, 52 SAY oGet[4] VAR ::aCli[1]    OF oDlg BORDER PIXEL SIZE 76,10 UPDATE
-   @ 26,194 SAY "No. de Noches"          OF oDlg RIGHT  PIXEL SIZE 40,10
-   @ 26,236 SAY oGet[5] VAR oApl:oFac:PAGINAS OF oDlg PICTURE "99";
+   @ 26, 00 SAY "Fecha Llegada"          OF oDlp RIGHT  PIXEL SIZE 50,10
+   @ 26, 52 SAY oGet[4] VAR ::aCli[1]    OF oDlp BORDER PIXEL SIZE 76,10 UPDATE
+   @ 26,194 SAY "No. de Noches"          OF oDlp RIGHT  PIXEL SIZE 40,10
+   @ 26,236 SAY oGet[5] VAR oApl:oFac:PAGINAS OF oDlp PICTURE "99";
       BORDER PIXEL SIZE 20,10
-   @ 26,258 SAY oGet[6] VAR oApl:oFac:NOCHE_EXT OF oDlg PICTURE "999";
+   @ 26,258 SAY oGet[6] VAR oApl:oFac:NOCHE_EXT OF oDlp PICTURE "999";
       BORDER PIXEL SIZE 20,10
-   @ 38, 00 SAY "Fecha Salida"           OF oDlg RIGHT  PIXEL SIZE 50,10
-   @ 38, 52 SAY oGet[7] VAR ::aCli[2]    OF oDlg BORDER PIXEL SIZE 76,10
-   @ 38,182 SAY "Valor Factura"          OF oDlg RIGHT  PIXEL SIZE 50,10
-   @ 38,236 SAY oGet[9] VAR ::aM[6]      OF oDlg PICTURE "999,999,999";
+   @ 38, 00 SAY "Fecha Salida"           OF oDlp RIGHT  PIXEL SIZE 50,10
+   @ 38, 52 SAY oGet[7] VAR ::aCli[2]    OF oDlp BORDER PIXEL SIZE 76,10
+   @ 38,182 SAY "Valor Factura"          OF oDlp RIGHT  PIXEL SIZE 50,10
+   @ 38,236 SAY oGet[9] VAR ::aM[6]      OF oDlp PICTURE "999,999,999";
       BORDER PIXEL SIZE 42,10
-   @ 50,124 SAY oGet[8] VAR ::aM[7]      OF oDlg COLOR nRGB( 255,0,0 );
+   @ 50,122 SAY oGet[8] VAR ::aM[7]      OF oDlp COLOR nRGB( 255,0,0 );
       BORDER PIXEL SIZE 70,10
-   @ 50,194 SAY "Saldo"                  OF oDlg RIGHT PIXEL SIZE 40,10
-   @ 50,236 SAY oGet[10] VAR oApl:nSaldo OF oDlg PICTURE "999,999,999";
+   @ 50,194 SAY "Saldo"                  OF oDlp RIGHT PIXEL SIZE 40,10
+   @ 50,236 SAY oGet[10] VAR oApl:nSaldo OF oDlp PICTURE "999,999,999";
       BORDER PIXEL SIZE 42,10
-   @ 62, 00 SAY "Noches a Renovar"       OF oDlg RIGHT  PIXEL SIZE 50,10
-   @ 62, 52 GET oGet[11] VAR ::nDias     OF oDlg PICTURE "99";
-      VALID( If( ::nDias > 0,;
-               ( ::nPago := (::aM[6] / oApl:oFac:PAGINAS) * ::nDias,;
-                 oGet[12]:REFRESH(), .t. ) ,;
+   @ 62, 00 SAY "Noches a Renovar"       OF oDlp RIGHT  PIXEL SIZE 50,10
+   @ 62, 52 GET oGet[11] VAR ::nDias     OF oDlp PICTURE "99";
+      VALID( If( ::nDias >= 0,;
+               ( aPG[3] := (::aM[6] / oApl:oFac:PAGINAS) * ::nDias,;
+                 oGet[13]:REFRESH(), .t. ) ,;
                ( MsgStop( "Nro. de Noches debe ser mayor de 0" ), .f. ) ));
       SIZE 20,10 PIXEL
-   @ 62,194 SAY "Total a Pagar"          OF oDlg RIGHT PIXEL SIZE 40,10
-   @ 62,236 SAY oGet[12] VAR ::nPago     OF oDlg PICTURE "999,999,999";
+   @ 62, 80 SAY "Opción Pagos"           OF oDlp RIGHT PIXEL SIZE 40,10
+   @ 62,122 COMBOBOX oGet[12] VAR aPG[2] ITEMS {"Renovar","Salida","Salida sin Pagar"};
+      SIZE 48,90 OF oDlp PIXEL
+
+   @ 62,194 SAY "Total a Pagar"          OF oDlp RIGHT PIXEL SIZE 40,10
+   @ 62,236 SAY oGet[13] VAR aPG[3]      OF oDlp PICTURE "999,999,999";
       BORDER PIXEL SIZE 42,10 UPDATE
-// @ 52, 50 BUTTON oGet[6] PROMPT "Aceptar"  SIZE 44,12 OF oDlg ;
-//    ACTION ( oGet[6]:Disable(), oM:MediosDT(), oDlg:End() ) PIXEL
-   @ 76,100 BUTTON oGet[13] PROMPT "Cancelar" SIZE 44,12 OF oDlg CANCEL;
-      ACTION oDlg:End() PIXEL
+
+   @ 76,200 BUTTON oGet[14] PROMPT "Grabar Pago"  SIZE 44,12 OF oDlp ;
+      ACTION ( If( MsgYesNo( "Graba este Pago" ), (aPG[1] := .t., oDlp:End()),;
+                 ( oGet[14]:oJump := oGet[11], oGet[11]:SetFocus()) ) ) PIXEL
+   @ 92,200 BUTTON oGet[15] PROMPT "Cancelar" SIZE 44,12 OF oDlp CANCEL;
+      ACTION oDlp:End() PIXEL
+
+   @ 76, 10 LISTBOX oLbs FIELDS "", "", "";
+      HEADERS "Nombre Servicio", "No. de"+CRLF+"Noches", "Precio"+CRLF+"Neto" ;
+      SIZE 180, 66          ;
+      FIELDSIZES 200, 50, 60;
+      OF oDlp PIXEL         ;
+      ON DBLCLICK MsgInfo( "Array row: " + STR( oLbs:nAt ) + CRLF + ;
+                           "Array col: " + STR( oLbs:nAtCol( nCol ) ) )
+    oLbs:nClrBackHead := oApl:nClrBackHead
+    oLbs:nLineStyle:= 2
+    oLbs:nClrLine  := nRgb(184,196,224)
+    oLbs:nHeaderHeight := 28
+    oLbs:aHjustify   := {2,2,2}
+    oLbs:aJustify    := {0,1,1}
+    oLbs:nAt       := 1
+    oLbs:bLine     := { || { ::aV[oLbs:nAt,2],;
+                  TRANSFORM( ::aV[oLbs:nAt,4],  "9,999"),;
+                  TRANSFORM( ::aV[oLbs:nAt,8],"999,999,999") } }
+    oLbs:bGoTop    := {|| oLbs:nAt := 1 }
+    oLbs:bGoBottom := {|| oLbs:nAt := EVAL( oLbs:bLogicLen ) }
+    oLbs:bSkip     := {|nWant,nOld| nOld := oLbs:nAt, oLbs:nAt += nWant,;
+                        oLbs:nAt := MAX( 1, MIN( oLbs:nAt, EVAL( oLbs:bLogicLen ) ) ),;
+                        oLbs:nAt - nOld }
+    oLbs:bLogicLen := {|| LEN( ::aV ) }
+    oLbs:cAlias    := "Array"
 
    ACTIVAGET( oGet )
-ACTIVATE DIALOG oDlg CENTERED
-
-/*
-::aM[5] := "INSERT INTO cadfactd (empresa, numfac, tipo, "+;
-           "codigo, cantidad, unidadmed, precioven, "     +;
-           "despor, desmon, montoiva, ppubli, pcosto) "   +;
-           "VALUES ( "+ LTRIM(STR(oApl:nEmpresa)) + ", "  +;
-                     LTRIM(STR(oApl:oFac:NUMFAC)) + ", '" +;
-                               oApl:Tipo          + "', '"
-FOR nR := 1 TO LEN( ::aV )
-   If !EMPTY( ::aV[nR,1] )
-      Actualiz( ::aV[nR,1],::aV[nR,4],oApl:oFac:FECHOY,2,,::aV[nR,5] )
-      cQry :=      TRIM(::aV[nR,1])  + "', " + LTRIM(STR(::aV[nR,4])) +  ", '"+;
-                   TRIM(::aV[nR,5])  + "', " + LTRIM(STR(::aV[nR,8])) +  ", " +;
-              LTRIM(STR(::aV[nR,6])) +  ", " + LTRIM(STR(::aV[nR,7])) +  ", " +;
-              LTRIM(STR(::aV[nR,9])) +  ", " + LTRIM(STR(::aV[nR,3])) +  ", " +;
-              LTRIM(STR(oApl:aInvme[2]))     + " )"
-      Guardar( ::aM[5]+cQry,"cadfactd" )
+ACTIVATE DIALOG oDlp CENTERED
+If aPG[1]
+   If aPG[2] == 1
+      aPG[4] := "UPDATE cadfacte SET fecha_sal = DATE_ADD( fecha_sal, INTERVAL" +;
+                STR(::nDias,3) + " DAY) "
+   Else
+      aPG[3] := If( aPG[2] == 3, 0, aPG[3] )
+      aPG[4] := "UPDATE cadfacte SET fecha_sal = NOW(), estado = 'C' "
+      oApl:oFac:FECHACAN := ::dFec
    EndIf
-NEXT
- ContaVta( ::oMvc,::oMvd,.f.,::aCta )
+   Guardar( aPG[4] + "WHERE factc_id = " + LTRIM(STR(oApl:oFac:ROW_ID)),"cadfacte" )
+   oApl:oFac:NOCHE_EXT += ::nDias
+   oApl:oFac:Update( .f.,1 )
+   If aPG[3] > 0
+      aPG[4] := "INSERT INTO cadpagos (empresa, numfac, tipo, fecpag, abono, "  +;
+                                      "pagado, numcheque, documento, tipo_pag) "+;
+                "VALUES ( "+ LTRIM(STR(oApl:nEmpresa)) + ", "       +;
+                             LTRIM(STR(::aM[2]))       + ", 'A', '" +;
+                             MyDToMs( DTOS(::dFec) )   + "', "      +;
+                             LTRIM(STR(aPG[3]))        + ", " + LTRIM(STR(aPG[3])) + ", '" +;
+                             LTRIM(STR(::nDias))       + "', 2, 'P' )"
+      Guardar( aPG[4],"cadpagos" )
+   EndIf
+// ContaVta( ::oMvc,::oMvd,.f.,::aCta )
+EndIf
  ::Iniciar( oDlg,oLbx )
-*/
 RETURN NIL
 
 //------------------------------------//
 METHOD Listado( oDlg,oLbx ) CLASS TCotizar
-  // LOCAL nAt := AScan( oDlg:aControls, { |oCtrl| oCtrl:lPressed } )
-   LOCAL n
-FOR n := 1 TO Len( oDlg:aControls )
-   //If oDlg:aControls[ n ]:ClassName() == "BUTTON"
-      MsgInfo( oDlg:aControls[ n ]:ClassName(),n )
-      MsgInfo( oDlg:aControls[ n ]:cMsg )
-   //EndIf
-NEXT n
+   LOCAL aGT, aRes, cQry, hRes, nL, oRpt
+//         " AND fechoy     = " + xValToChar( ::dFec )     +;
+cQry := "SELECT numfac FAC, 'F' CLA, cliente, totalfac, amigos "+;
+        "FROM cadfactc "                                 +;
+        "WHERE empresa    = " + LTRIM(STR(oApl:nEmpresa))+;
+         " AND tipo       = 'A'"                         +;
+         " AND indicador <> 'A'"                         +;
+         " UNION ALL "                                   +;
+        "SELECT c.numfac FAC, 'P' CLA, c.cliente, p.pagado, 0 "+;
+        "FROM cadpagos p LEFT JOIN cadfactc c "          +;
+       "USING( empresa, numfac, tipo )"                  +;
+        "WHERE p.empresa  = " + LTRIM(STR(oApl:nEmpresa))+;
+         " AND p.fecpag   = " + xValToChar( ::dFec )     +;
+         " AND p.tipo     = 'A' ORDER BY CLA, FAC"
+hRes := If( MSQuery( oApl:oMySql:hConnect,cQry ) ,;
+            MSStoreResult( oApl:oMySql:hConnect ), 0 )
+nL   := MSNumRows( hRes )
+oRpt := TDosPrint()
+oRpt:New( oApl:cPuerto,oApl:cImpres,{"LISTADO DE PAGOS",NtChr( ::dFec,"3" ),;
+          "   FACTURA  T U R I S T A                              VALOR PAGO"},.T. )
+aGT := { 0,0,0,0,"F"  }
+While nL > 0
+   aRes := MyReadRow( hRes )
+   AEVAL( aRes,{|xV,nP| aRes[nP] := MyClReadCol( hRes,nP ) } )
+   oRpt:Titulo( 79 )
+   If aGT[5]  # aRes[2]
+      aGT[5] := aRes[2]
+      oRpt:Say( oRpt:nL,00,"======P A G O S======" )
+      oRpt:nL++
+   EndIf
+   oRpt:Say( oRpt:nL,00,STR(aRes[1]) )
+   oRpt:Say( oRpt:nL,12,aRes[3] )
+   oRpt:Say( oRpt:nL,54,TRANSFORM(aRes[4],"999,999,999" ))
+   oRpt:nL++
+   If aRes[2] == "F"
+      aGT[1] += (aRes[5] + 1)
+      aGT[3] +=  aRes[4]
+   Else
+      aGT[4] +=  aRes[4]
+   EndIf
+   nL --
+EndDo
+MSFreeResult( hRes )
+aGT[5] := aGT[3] + aGT[4]
+cQry := SPACE(11)
+   oRpt:Separator( 2,5 )
+   oRpt:Say(++oRpt:nL,26,"INGRESOS FACTURA:" + cQry +;
+              TRANSFORM( aGT[3],"999,999,999" ))
+   oRpt:Say(++oRpt:nL,26,"INGRESOS PAGOS  :" + cQry +;
+              TRANSFORM( aGT[4],"999,999,999" ))
+   oRpt:Say(++oRpt:nL,52,"=============" )
+   oRpt:Say(++oRpt:nL,26,"TOTAL INGRESOS  :" + cQry +;
+              TRANSFORM( aGT[5],"999,999,999" ))
+oRpt:NewPage()
+oRpt:End()
 /*
 If ::oDb:lOK
    ::cVende := {"REMISION","COTIZACION"}[::oDb:CLASE]
