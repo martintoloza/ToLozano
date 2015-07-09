@@ -731,6 +731,9 @@ EndIf
     If oApl:oFac:PIVA == 8 .OR. oApl:oNit:TIPOCOD == 3
        aCta[5,1] := "41550502"
     EndIf
+    If oApl:oFac:PIVA == 8
+       aCta[7,1] := "24950502"
+    EndIf
     If oApl:cPer >= "201401" .AND. LEN( ::aCta ) > 9
        nR := ROUND( nPago * oApl:oEmp:PCRE / 100,0 )
        AADD( aCta,{ ::aCta[09],"","","","",nR,0,0,0,0 } )

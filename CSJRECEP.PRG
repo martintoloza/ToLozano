@@ -60,9 +60,10 @@ DEFINE DIALOG oDlg FROM 0, 0 TO 470, 580 PIXEL;
                  (oApl:oFac:TURISTA_ID := oNi:oDb:TURISTA_ID         ,;
                   oApl:oFac:CLIENTE    := oF:aM[4] := oNi:oDb:NOMBRES,;
                   oDlg:Update(), .t. )                               ,;
-              (If( MsgYesNo("Desea ingresarlo","Este ID  no Existe") ,;
-                  oNi:Editar( ,.t.,,oF:aM[3] ), ),.f.) ) } )          ;
+                 (oNi:Editar( ,.t.,,oF:aM[3] ), .f. ) ) } )           ;
       SIZE 60,10 PIXEL UPDATE  RESOURCE "BUSCAR"
+//            (If( MsgYesNo("Desea ingresarlo","Este ID  no Existe") ,;
+//                oNi:Editar( ,.t.,,oF:aM[3] ), ),.f.) ) } )          ;
    @ 28,114 SAY oF:oG[4] VAR oApl:oFac:CLIENTE OF oDlg BORDER PIXEL ;
       SIZE 162,10 UPDATE COLOR nRGB( 128,0,255 )
    @ 40, 00 SAY "Fecha Llegada"           OF oDlg RIGHT  PIXEL SIZE 40,10
@@ -168,7 +169,7 @@ DEFINE DIALOG oDlg FROM 0, 0 TO 470, 580 PIXEL;
        3DLOOK TRUE, TRUE, TRUE;
        MOVE DT_MOVE_NEXT;
        ALIGN DT_RIGHT, DT_CENTER ;
-       POSTEDIT { |uVar| If( oLbx:lChanged, oF:Dscto( 4,oLbx,uVar ), ) } ;
+       POSTEDIT { |uVar| If( oLbx:lChanged, oF:Dscto( 4,oLbx,uVar,oF:nAcom ), ) } ;
        VALID { |uVar| oF:DelArray( oLbx,4,uVar ) } ;
        WHEN oF:EditArray( oLbx )
    ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 8;
@@ -186,7 +187,7 @@ DEFINE DIALOG oDlg FROM 0, 0 TO 470, 580 PIXEL;
        ALIGN DT_RIGHT, DT_CENTER ;
        VALID { |uVar| If( Rango( uVar,0,100 ), .t., ;
               (MsgStop( "El Porcentaje debe ser entre 0 y 100",">>OJO<<" ), .f.)) };
-       POSTEDIT { |uVar| If( oLbx:lChanged, oF:Dscto( 6,oLbx,uVar ), ) };
+       POSTEDIT { |uVar| If( oLbx:lChanged, oF:Dscto( 6,oLbx,uVar,oF:nAcom ), ) };
        WHEN oF:EditArray( oLbx )
    ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 7;
        TITLE "Descuento"     PICTURE "99,999,999" ;
@@ -196,7 +197,7 @@ DEFINE DIALOG oDlg FROM 0, 0 TO 470, 580 PIXEL;
        ALIGN DT_RIGHT, DT_CENTER, DT_RIGHT;
        VALID { |uVar| oF:DelArray( oLbx,7,uVar ) };
        FOOTER { || TRANSFORM( oF:aM[08], "99,999,999" ) };
-       POSTEDIT { |uVar| If( oLbx:lChanged, oF:Dscto( 7,oLbx,uVar ), ) };
+       POSTEDIT { |uVar| If( oLbx:lChanged, oF:Dscto( 7,oLbx,uVar,oF:nAcom ), ) };
        WHEN oF:EditArray( oLbx )
    ADD COLUMN TO BROWSE oLbx DATA ARRAY ELEMENT 9;
        TITLE "Monto"+CRLF+"I.V.A"   PICTURE "99,999,999" ;
@@ -250,7 +251,7 @@ CREATE TABLE `cadfacte` (
 CLASS TCotizar FROM TFactura
 
  DATA oB            INIT ARRAY(9)
- DATA dFec, nDias, oTP
+ DATA dFec, nAcom, nDias, oTP
  METHOD AdicArray()
  METHOD Barrecep( oDlg,oLbx,oLbt )
  METHOD Busacom( xBuscar,oNi,nA )
@@ -266,7 +267,8 @@ ENDCLASS
 //------------------------------------//
 METHOD AdicArray() CLASS TCotizar
    LOCAL aRes, nL
- Super:AdicArray()
+::nAcom := oApl:oFac:AMIGOS
+ Super:AdicArray( ::nAcom )
    ::aCli := {}
    ::aVen := {}
 If ::aM[2] == 0
@@ -290,7 +292,7 @@ If ::aM[2] == 0
    //AADD( ::aV,{ SPACE(12), SPACE(40), 0, 1, "UN", 0, 0, 0, 0, " ", 0, .f., 1, 0, 1, "", 0 } )
 Else
    oApl:oTur:Seek( {"turista_id",oApl:oFac:TURISTA_ID} )
-   ::aM[3] := oApl:oTur:DOCIDEN
+   ::aM[3]:= oApl:oTur:DOCIDEN
    ::aCli := Buscar( "SELECT DATE_FORMAT(fecha_ent,'%d.%m.%Y a las %h:%i %p'), "+;
                             "DATE_FORMAT(fecha_sal,'%d.%m.%Y a las %h:%i %p'), estado "+;
                      "FROM cadfacte WHERE factc_id = " + LTRIM(STR(oApl:oFac:ROW_ID)),"CM",,8 )
@@ -357,16 +359,12 @@ If (lOK := oApl:oTur:Seek( {"dociden",xBuscar} ))
    ::aM[12] := oApl:oTur:NOMBRES
    ::aM[13] := oApl:oTur:TURISTA_ID
 ElseIf !EMPTY( xBuscar )
-   If MsgYesNo("Desea ingresarlo","Este ID  no Existe")
-      oNi:Editar( ,.t.,,xBuscar )
-      If oApl:oTur:DOCIDEN == xBuscar
-         ::aM[11] := xBuscar
-         ::aM[12] := oApl:oTur:NOMBRES
-         ::aM[13] := oApl:oTur:TURISTA_ID
-         lOK      := .t.
-      EndIf
-   EndIf
-   If !lOK
+   oNi:Editar( ,.t.,,xBuscar )
+   If (lOK := oApl:oTur:Seek( {"dociden",xBuscar} ))
+      ::aM[11] := xBuscar
+      ::aM[12] := oApl:oTur:NOMBRES
+      ::aM[13] := oApl:oTur:TURISTA_ID
+   Else
       MsgStop( "Este Documento ID NO EXISTE !!!",xBuscar )
    EndIf
 EndIf
@@ -398,8 +396,10 @@ If nA == NIL
       EndIf
    EndIf
 Else
+   ::nAcom := oLbt:nLen
    oLbt:Refresh()
    oLbt:DrawFooters()
+   oLbt:SetFocus()
 EndIf
 RETURN lEdit
 
@@ -412,7 +412,8 @@ If ::aM[09] > 0
          ::aV[nR,10] := "*"
       EndIf
    NEXT nR
-    Super:Guardar( oDlg,oLbx,1 )
+   oApl:oFac:AMIGOS := ::nAcom
+   Super:Guardar( oDlg,oLbx,1 )
    If ::aM[17]
       sQry := "INSERT INTO cadfacte VALUES ( null, " + LTRIM(STR(oApl:oFac:ROW_ID))+;
               ", NOW(), DATE_ADD( NOW(), INTERVAL"   + STR(oApl:oFac:PAGINAS,3)    +;
@@ -592,18 +593,18 @@ RETURN NIL
 //------------------------------------//
 METHOD Listado( oDlg,oLbx ) CLASS TCotizar
    LOCAL aGT, aRes, cQry, hRes, nL, oRpt
-//         " AND fechoy     = " + xValToChar( ::dFec )     +;
 cQry := "SELECT numfac FAC, 'F' CLA, cliente, totalfac, amigos "+;
-        "FROM cadfactc "                                 +;
-        "WHERE empresa    = " + LTRIM(STR(oApl:nEmpresa))+;
-         " AND tipo       = 'A'"                         +;
-         " AND indicador <> 'A'"                         +;
-         " UNION ALL "                                   +;
+        "FROM cadfactc "                             +;
+        "WHERE empresa    = " + STR(oApl:nEmpresa)   +;
+         " AND fechoy     = " + xValToChar( ::dFec ) +;
+         " AND tipo       = 'A'"                     +;
+         " AND indicador <> 'A'"                     +;
+         " UNION ALL "                               +;
         "SELECT c.numfac FAC, 'P' CLA, c.cliente, p.pagado, 0 "+;
-        "FROM cadpagos p LEFT JOIN cadfactc c "          +;
-       "USING( empresa, numfac, tipo )"                  +;
-        "WHERE p.empresa  = " + LTRIM(STR(oApl:nEmpresa))+;
-         " AND p.fecpag   = " + xValToChar( ::dFec )     +;
+        "FROM cadpagos p LEFT JOIN cadfactc c "      +;
+       "USING( empresa, numfac, tipo )"              +;
+        "WHERE p.empresa  = " + STR(oApl:nEmpresa)   +;
+         " AND p.fecpag   = " + xValToChar( ::dFec ) +;
          " AND p.tipo     = 'A' ORDER BY CLA, FAC"
 hRes := If( MSQuery( oApl:oMySql:hConnect,cQry ) ,;
             MSStoreResult( oApl:oMySql:hConnect ), 0 )
@@ -634,9 +635,17 @@ While nL > 0
    nL --
 EndDo
 MSFreeResult( hRes )
+aGT[2] := Buscar( "SELECT COUNT(*) + CAST(SUM(amigos) AS UNSIGNED INTEGER) FROM cadfactc "+;
+                  "WHERE empresa  = " + STR(oApl:nEmpresa)   +;
+                   " AND fechacan = " + xValToChar( ::dFec ) +;
+                   " AND tipo = 'A' AND indicador = 'C'","CM",,8,,4 )
+//En El Cabo
+nL     := Buscar( "SELECT COUNT(*) + CAST(SUM(amigos) AS UNSIGNED INTEGER) "+;
+                  "FROM cadfactc c, cadfacte e "                            +;
+                  "WHERE e.factc_id = c.row_id AND e.estado = 'P'","CM",,8,,4 )
 aGT[5] := aGT[3] + aGT[4]
 cQry := SPACE(11)
-   oRpt:Separator( 2,5 )
+   oRpt:Separator( 1,8 )
    oRpt:Say(++oRpt:nL,26,"INGRESOS FACTURA:" + cQry +;
               TRANSFORM( aGT[3],"999,999,999" ))
    oRpt:Say(++oRpt:nL,26,"INGRESOS PAGOS  :" + cQry +;
@@ -644,13 +653,14 @@ cQry := SPACE(11)
    oRpt:Say(++oRpt:nL,52,"=============" )
    oRpt:Say(++oRpt:nL,26,"TOTAL INGRESOS  :" + cQry +;
               TRANSFORM( aGT[5],"999,999,999" ))
+   oRpt:nL++
+   oRpt:Say(++oRpt:nL,02,"ENTRADA TURISTAS:" + cQry +;
+              TRANSFORM( aGT[1],"999,999,999" ))
+   oRpt:Say(++oRpt:nL,02,"SALIDAS TURISTAS:" + cQry +;
+              TRANSFORM( aGT[2],"999,999,999" ))
+   oRpt:Say(++oRpt:nL,02,"TURISTAS x SALIR:" + cQry +;
+              TRANSFORM( nL    ,"999,999,999" ))
 oRpt:NewPage()
 oRpt:End()
-/*
-If ::oDb:lOK
-   ::cVende := {"REMISION","COTIZACION"}[::oDb:CLASE]
-   CaoLiFac( {::oDb:NUMERO,::aDF[1],"",::cVende},::aV,::oDb )
-   ::Iniciar( oDlg,oLbx )
-EndIf
-*/
+ ::Iniciar( oDlg,oLbx )
 RETURN NIL
