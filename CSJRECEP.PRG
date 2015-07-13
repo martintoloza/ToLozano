@@ -245,6 +245,9 @@ CREATE TABLE `cadfacte` (
   KEY `Llegada` (`fecha_ent`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 //) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+ALTER TABLE cadfactg
+ADD FOREIGN KEY fk_cadfactg_ref_turista(turista_id) REFERENCES turista(turista_id)
 */
 
 //------------------------------------//
@@ -318,7 +321,8 @@ DEFINE BUTTON ::oB[5] RESOURCE "DEDISCO"   OF oBar NOBORDER ;
    ACTION ::Guardar( oDlg,oLbx )
 DEFINE BUTTON ::oB[1] RESOURCE "IMPRIMIR"  OF oBar NOBORDER ;
    TOOLTIP "Imprime Factura [F3]" ;
-   ACTION ::Listado( oDlg,oLbx )
+   ACTION ( CSJLIREC( 1,{::dFec,::dFec,1,oApl:nTFor,.t.,0,""} ),;
+            ::Iniciar( oDlg,oLbx ) )
 DEFINE BUTTON ::oB[2] RESOURCE "REINDEZAR" OF oBar NOBORDER ;
    TOOLTIP "Borrar Código [F5]"  ;
    ACTION ( ::aM[1] := .t., oLbx:KeyDown( VK_DELETE,0 ) )
@@ -593,74 +597,23 @@ RETURN NIL
 //------------------------------------//
 METHOD Listado( oDlg,oLbx ) CLASS TCotizar
    LOCAL aGT, aRes, cQry, hRes, nL, oRpt
-cQry := "SELECT numfac FAC, 'F' CLA, cliente, totalfac, amigos "+;
-        "FROM cadfactc "                             +;
-        "WHERE empresa    = " + STR(oApl:nEmpresa)   +;
-         " AND fechoy     = " + xValToChar( ::dFec ) +;
-         " AND tipo       = 'A'"                     +;
-         " AND indicador <> 'A'"                     +;
-         " UNION ALL "                               +;
-        "SELECT c.numfac FAC, 'P' CLA, c.cliente, p.pagado, 0 "+;
-        "FROM cadpagos p LEFT JOIN cadfactc c "      +;
-       "USING( empresa, numfac, tipo )"              +;
-        "WHERE p.empresa  = " + STR(oApl:nEmpresa)   +;
-         " AND p.fecpag   = " + xValToChar( ::dFec ) +;
-         " AND p.tipo     = 'A' ORDER BY CLA, FAC"
-hRes := If( MSQuery( oApl:oMySql:hConnect,cQry ) ,;
-            MSStoreResult( oApl:oMySql:hConnect ), 0 )
-nL   := MSNumRows( hRes )
-oRpt := TDosPrint()
-oRpt:New( oApl:cPuerto,oApl:cImpres,{"LISTADO DE PAGOS",NtChr( ::dFec,"3" ),;
-          "   FACTURA  T U R I S T A                              VALOR PAGO"},.T. )
-aGT := { 0,0,0,0,"F"  }
-While nL > 0
-   aRes := MyReadRow( hRes )
-   AEVAL( aRes,{|xV,nP| aRes[nP] := MyClReadCol( hRes,nP ) } )
-   oRpt:Titulo( 79 )
-   If aGT[5]  # aRes[2]
-      aGT[5] := aRes[2]
-      oRpt:Say( oRpt:nL,00,"======P A G O S======" )
-      oRpt:nL++
-   EndIf
-   oRpt:Say( oRpt:nL,00,STR(aRes[1]) )
-   oRpt:Say( oRpt:nL,12,aRes[3] )
-   oRpt:Say( oRpt:nL,54,TRANSFORM(aRes[4],"999,999,999" ))
-   oRpt:nL++
-   If aRes[2] == "F"
-      aGT[1] += (aRes[5] + 1)
-      aGT[3] +=  aRes[4]
-   Else
-      aGT[4] +=  aRes[4]
-   EndIf
-   nL --
-EndDo
-MSFreeResult( hRes )
-aGT[2] := Buscar( "SELECT COUNT(*) + CAST(SUM(amigos) AS UNSIGNED INTEGER) FROM cadfactc "+;
-                  "WHERE empresa  = " + STR(oApl:nEmpresa)   +;
-                   " AND fechacan = " + xValToChar( ::dFec ) +;
-                   " AND tipo = 'A' AND indicador = 'C'","CM",,8,,4 )
-//En El Cabo
-nL     := Buscar( "SELECT COUNT(*) + CAST(SUM(amigos) AS UNSIGNED INTEGER) "+;
-                  "FROM cadfactc c, cadfacte e "                            +;
-                  "WHERE e.factc_id = c.row_id AND e.estado = 'P'","CM",,8,,4 )
-aGT[5] := aGT[3] + aGT[4]
-cQry := SPACE(11)
-   oRpt:Separator( 1,8 )
-   oRpt:Say(++oRpt:nL,26,"INGRESOS FACTURA:" + cQry +;
-              TRANSFORM( aGT[3],"999,999,999" ))
-   oRpt:Say(++oRpt:nL,26,"INGRESOS PAGOS  :" + cQry +;
-              TRANSFORM( aGT[4],"999,999,999" ))
-   oRpt:Say(++oRpt:nL,52,"=============" )
-   oRpt:Say(++oRpt:nL,26,"TOTAL INGRESOS  :" + cQry +;
-              TRANSFORM( aGT[5],"999,999,999" ))
-   oRpt:nL++
-   oRpt:Say(++oRpt:nL,02,"ENTRADA TURISTAS:" + cQry +;
-              TRANSFORM( aGT[1],"999,999,999" ))
-   oRpt:Say(++oRpt:nL,02,"SALIDAS TURISTAS:" + cQry +;
-              TRANSFORM( aGT[2],"999,999,999" ))
-   oRpt:Say(++oRpt:nL,02,"TURISTAS x SALIR:" + cQry +;
-              TRANSFORM( nL    ,"999,999,999" ))
-oRpt:NewPage()
-oRpt:End()
- ::Iniciar( oDlg,oLbx )
+/*
+SELECT c.numfac FAC, 'F' CLA, c.fechoy, c.totalfac, t.nombres
+FROM cadfactc c LEFT JOIN turista t
+ USING( turista_id )
+WHERE c.empresa    = 1
+  AND c.fechoy     = '2015-07-09'
+  AND c.tipo       = 'A'
+  AND c.indicador <> 'A'
+UNION ALL
+SELECT c.numfac FAC, 'G' CLA, c.fechoy, c.totalfac, t.nombres
+FROM cadfactc c, cadfactg g LEFT JOIN turista t
+ USING( turista_id )
+WHERE c.row_id     = g.factc_id
+  AND c.empresa    = 1
+  AND c.fechoy     = '2015-07-09'
+  AND c.tipo       = 'A'
+  AND c.indicador <> 'A'
+ORDER BY FAC, CLA
+*/
 RETURN NIL
