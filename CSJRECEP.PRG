@@ -217,9 +217,6 @@ DEFINE DIALOG oDlg FROM 0, 0 TO 470, 580 PIXEL;
 ACTIVATE DIALOG oDlg CENTERED ON INIT ;
   ( oF:Barrecep( oDlg,oLbx,oLbt ) );
    VALID !GetKeyState( VK_ESCAPE )
-/*
-   SetFocus( oDlg:aControls[ 4 ]:hWnd )
-*/
 If( lNoBlink, SBNoBlink( aColor[1], aColor[2] ), Nil )
 oApl:oEmp:Seek( {"empresa",oF:nOptica} )
 oF:oDb:Destroy()
@@ -248,6 +245,31 @@ CREATE TABLE `cadfacte` (
 
 ALTER TABLE cadfactg
 ADD FOREIGN KEY fk_cadfactg_ref_turista(turista_id) REFERENCES turista(turista_id)
+CREATE TABLE cliente
+(
+    id_cliente INT NOT NULL,
+    nombre VARCHAR(30),
+    PRIMARY KEY (id_cliente)
+) TYPE = INNODB;
+
+CREATE TABLE venta
+(
+    id_factura INT NOT NULL,
+    id_cliente INT NOT NULL,
+    cantidad   INT,
+    PRIMARY KEY(id_factura),
+    INDEX (id_cliente),
+    FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
+) TYPE = INNODB;
+ALTER TABLE venta ADD FOREIGN KEY(id_cliente) REFERENCES cliente(id_cliente);
+La sintaxis completa de una restricción de clave foránea es la siguiente:
+
+[CONSTRAINT símbolo] FOREIGN KEY (nombre_columna, ...)
+                  REFERENCES nombre_tabla (nombre_columna, ...)
+                  [ON DELETE {CASCADE | SET NULL | NO ACTION
+                              | RESTRICT}]
+                  [ON UPDATE {CASCADE | SET NULL | NO ACTION
+                              | RESTRICT}]
 */
 
 //------------------------------------//
@@ -575,6 +597,7 @@ If aPG[1]
       aPG[3] := If( aPG[2] == 3, 0, aPG[3] )
       aPG[4] := "UPDATE cadfacte SET fecha_sal = NOW(), estado = 'C' "
       oApl:oFac:FECHACAN := ::dFec
+      oApl:oFac:INDICADOR:= "C"
    EndIf
    Guardar( aPG[4] + "WHERE factc_id = " + LTRIM(STR(oApl:oFac:ROW_ID)),"cadfacte" )
    oApl:oFac:NOCHE_EXT += ::nDias

@@ -878,6 +878,27 @@ Case cTabla == "telefonos"
                 { "numero"    , "C", 16, 00, },;
                 { "extencion" , "C", 20, 00, } }
    aIndice := { { "Codigo"    , {"codigo_nit"} } }
+Case cTabla == "reservac"
+   aStruct := { { "id"        , "N", 11, 00, " auto_increment PRIMARY KEY" },;
+                { "empresa"   , "N", 02, 00, },;
+                { "numero"    , "N", 08, 00, },;
+                { "fecha"     , "D", 08, 00, },;
+                { "concepto"  , "C", 40, 00, },;
+                { "codigo_nit", "N", 05, 00, },;
+                { "turista_id", "N", 11, 00, },;
+                { "totalfac"  , "N", 13, 02, },;
+                { "idcadfactc", "N", 11, 00, } }
+   aIndice := { { "Numero" , {"empresa","numero"} } }
+Case cTabla == "reservad"
+   aStruct := { { "row_id"    , "N", 11, 00, " auto_increment PRIMARY KEY" },;
+                { "idreservac", "N", 11, 00, },;
+                { "codigo"    , "C", 10, 00, },;
+                { "cantidad"  , "N", 10, 00, },;
+                { "precioven" , "N", 12, 02, } }
+   aIndice := { { "Numero" , {"idreservac"} } }
+//                { "Constraint",{ "ALTER TABLE reservad ADD CONSTRAINT fk_Resrva "+;
+//                             "FOREIGN KEY (idreservac) REFERENCES reservac "+;
+//                             "(id) ON DELETE CASCADE ON UPDATE CASCADE" } } }
 Case cTabla == "turista"
    aStruct := { { "turista_id", "N", 11, 00, " auto_increment PRIMARY KEY" },;
                 { "tipoiden"  , "C", 02, 00, " default 'CC'"},;
