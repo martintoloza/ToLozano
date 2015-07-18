@@ -431,7 +431,7 @@ RETURN cValor + cSep
 //------------------------------------//
 PROCEDURE GrabaSal( nFactura,nMov,nPago,nIfrs,cName )
    LOCAL aCC, cQry
-   DEFAULT cName := oApl:oFam:cName
+   DEFAULT nIfrs := 1, cName := oApl:oFam:cName
 If oApl:Tipo # "Z"
    If nIfrs == 1
       aCC := { oApl:nSaldo,0,nPago,0,"","abonos","debito" }
@@ -448,8 +448,8 @@ If oApl:Tipo # "Z"
                oApl:Tipo + "', '" + oApl:cPer + "', "+;
                LTRIM(STR(aCC[1])) + ", 0, 0, "       +;
                LTRIM(STR(aCC[2])) + ", 0, 0 )"
-      //MSQuery( oApl:oMySql:hConnect,cQry )
-      MsgInfo( cQry,nIfrs )
+      //MsgInfo( cQry,nIfrs )
+      MSQuery( oApl:oMySql:hConnect,cQry )
    EndIf
    If nPago # 0
       aCC[5] := " WHERE empresa = " + LTRIM(STR(oApl:nEmpresa))+;
