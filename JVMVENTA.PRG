@@ -352,10 +352,17 @@ ElseIf VALTYPE( oDlg ) == "O"
    ::oG[01]:SetFocus()
 Else
    If oApl:oFac:CLASECLI == 2 .AND. oApl:oInv:PUNIDAD > 0
+<<<<<<< HEAD
       //Mayorista
       ::aM[13] := oApl:oInv:PUNIDAD
    ElseIf oApl:oFac:CLASECLI == 3
       //Especial
+=======
+      //MsgInfo( "Mayorista" )
+      ::aM[13] := oApl:oInv:PUNIDAD
+   ElseIf oApl:oFac:CLASECLI == 3
+      //MsgInfo( "Especial" )
+>>>>>>> e3a11fbd741e5af4069c507f74d5a40ddc30e29b
       ::aM[13] := oApl:oInv:PCOSTO +;
                   ROUND( oApl:oInv:PCOSTO * 3/100,0 )
    Else
@@ -486,9 +493,16 @@ Else
       Else
          ::aM[18] := 1
       EndIf
+<<<<<<< HEAD
       ::aM[17] := If( ::aM[18] > 1 .AND. oApl:Tipo $ "CZ", .t., .f. )
       ::aM[11] := xBuscar
       ::aM[12] := oApl:oInv:DESCRIP
+=======
+      ::aM[11] := xBuscar
+      ::aM[12] := oApl:oInv:DESCRIP
+      ::aM[13] := oApl:oInv:PPUBLI
+      ::aM[17] := If( ::aM[18] > 1 .AND. oApl:Tipo $ "CZ", .t., .f. )
+>>>>>>> e3a11fbd741e5af4069c507f74d5a40ddc30e29b
       ::aM[19] := oApl:oInv:CODCON
       ::aM[20] := oApl:oInv:UNIDADMED
       ::aM[23] := oApl:oInv:AJUSTE_ESP
@@ -518,8 +532,13 @@ Else
                             "Le Aplico este Descuento" ), oApl:oInv:DESPOR, 0 )
          EndIf
          ::aM[05] := oApl:oInv:UNIDADMED
+<<<<<<< HEAD
        //::aM[13] := oApl:oInv:PPUBLI
          ::Iniciar( 1 )
+=======
+         ::Iniciar( 1 )
+       //MsgInfo( TRANSFORM(::aM[13],"999,999.99"),xBuscar )
+>>>>>>> e3a11fbd741e5af4069c507f74d5a40ddc30e29b
        //MsgInfo( TRANSFORM(::aM[18],"999.99"),"NUEVO" )
          If ::aM[17]
             ::aM[14] := ROUND( ::aM[13] / ::aM[18],2 )

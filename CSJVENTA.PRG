@@ -285,10 +285,10 @@ CLASS TFactura FROM TNits
 
  METHOD NEW( xCoti ) Constructor
  METHOD Iniciar( oDlg,oLbx,cTipo )
- METHOD AdicArray()
+ METHOD AdicArray( nCan )
  METHOD EditArray( oLbx )
  METHOD Buscar( xBuscar,oLbx,nA )
- METHOD Dscto( nPos,oLbx,mGetVar )
+ METHOD Dscto( nPos,oLbx,mGetVar,nCanti )
  METHOD DelArray( oLbx,nCol,uVar )
  METHOD DelFactu( oDlg,oLbx )
  METHOD FechaDev( cMsg,dFec )
@@ -365,7 +365,7 @@ EndIf
 RETURN NIL
 
 //------------------------------------//
-METHOD AdicArray() CLASS TFactura
+METHOD AdicArray( nCan ) CLASS TFactura
    LOCAL aRes, hRes, nL
 If ::aM[2] == 0
    ::aM[7] := ""
@@ -410,6 +410,7 @@ aRes := "SELECT v.codigo, v.ppubli, v.cantidad, v.unidadmed, v.despor, v.desmon,
          " GROUP BY v.row_id"
 hRes := If( MSQuery( oApl:oMySql:hConnect,aRes ) ,;
             MSStoreResult( oApl:oMySql:hConnect ), 0 )
+nCan := If( nCan == NIL .OR. nCan == 0, 1, nCan+1 )
 nL   := MSNumRows( hRes )
 While nL > 0
    aRes := MyReadRow( hRes )
@@ -418,7 +419,7 @@ While nL > 0
       aRes[09] += "C." + LTRIM(STR(aRes[12]))
    EndIf
    ::Buscar( aRes[01] )
-   ::aM[14] := ROUND( (aRes[07] + aRes[06]) / aRes[03],2 )
+   ::aM[14] := ROUND( (aRes[07] + aRes[06]) /(aRes[03]*nCan),2 )
    AADD( ::aV,{ aRes[01], ::aM[12]          , aRes[02],;
                 aRes[03], aRes[04]          , aRes[05],;
                 aRes[06], aRes[07]          , aRes[08],;
@@ -550,7 +551,7 @@ EndIf
 RETURN If( EMPTY( xBuscar ), .f., lOK )
 
 //------------------------------------//
-METHOD Dscto( nPos,oLbx,mGetVar ) CLASS TFactura
+METHOD Dscto( nPos,oLbx,mGetVar,nCanti ) CLASS TFactura
    LOCAL nSubTot, nA := oLbx:nAt
 do Case
 Case nPos == 5           // UnidadMed
@@ -581,13 +582,14 @@ Case nPos == 8           // Precio Neto
    ::aV[nA,14] := mGetVar
 EndCase
 If Rango( nPos,1,8 )
-   nSubTot    := ROUND( ::aV[nA,14] * ::aV[nA,04],0 )
+   nCanti     := ::aV[nA,04] * If( nCanti == NIL .OR. nCanti == 0, 1, nCanti+1 )
+   nSubTot    := ROUND( ::aV[nA,14] * nCanti,0 )
    ::aV[nA,7] := If( nPos == 7, mGetVar, If( ::aV[nA,06] = 0, ::aV[nA,07],;
                      ROUND( nSubTot * ::aV[nA,6] / 100,0 ) ) )
    nSubTot    -= ::aV[nA,7]
    ::aV[nA,8] := ROUND( nSubTot / If( ::aV[nA,12], 1, ::aV[nA,13] ),0 )
    If ::aV[nA,7] == 0 .AND. oApl:oEmp:PRINTIVA
-      ::aV[nA,9] := ROUND( ::aV[nA,3] * ::aV[nA,04],0 ) - ::aV[nA,8]
+      ::aV[nA,9] := ROUND( ::aV[nA,3] * nCanti     ,0 ) - ::aV[nA,8]
    Else
       ::aV[nA,9] := ROUND( ::aV[nA,8] * ::aV[nA,13],0 ) - ::aV[nA,8]
    EndIf
