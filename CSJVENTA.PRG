@@ -382,7 +382,6 @@ If ::aM[2] == 0
       oApl:oFac:EFECTIVO := .T.
    EndIf
    oApl:oFac:INDICADOR := If( oApl:oFac:EFECTIVO  , "C", "P" )
- //oApl:oFac:INDICADOR := If( oApl:Tipo $ oApl:cTF, "P", "C" )
 Else
    oApl:cPer:= NtChr( oApl:dFec,"1" )
    oApl:lFam:= SaldoFac( ::aM[2] )
@@ -1083,63 +1082,6 @@ Else
    EndIf
    MSFreeResult( hRes )
 EndIf
-/* 1
-aRes := "SELECT d.numfac, d.tipo, d.row_id, d.codigo, d.cantidad, "+;
-               "d.unidadmed, d.pcosto, i.unidadmed "+;
-        "FROM cadinven i, cadfactd d "    +;
-        "WHERE d.codigo     = i.codigo"   +;
-         " AND d.unidadmed <> i.unidadmed"+;
-         " AND d.tipo      <> 'Z' ORDER BY d.numfac, d.tipo"
-hRes := If( MSQuery( oApl:oMySql:hConnect,aRes ) ,;
-            MSStoreResult( oApl:oMySql:hConnect ), 0 )
-If (nL := MSNumRows( hRes )) == 0
-   MSFreeResult( hRes )
-   RETURN NIL
-EndIf
-   aRes := MyReadRow( hRes )
-   AEVAL( aRes, { | xV,nP | aRes[nP] := MyClReadCol( hRes,nP ) },3 )
-   oApl:oFac:Seek( { "empresa",oApl:nEmpresa,"numfac",aRes[1],"tipo",aRes[2]} )
-   aF   := { aRes[1],aRes[2],aRes[3],NtChr( oApl:oFac:FECHOY,"1" ),.f. }
-While nL > 0
-   If oApl:oFac:INDICADOR # "A"
-      SaldoInv( aRes[4],aF[4] )
-      If oApl:aInvme[2] # 0 .AND. oApl:aInvme[2] # aRes[7]
-         Guardar( "UPDATE cadfactd SET pcosto = " + LTRIM(STR(oApl:aInvme[2]))+;
-                  " WHERE row_id = " + LTRIM(STR(aF[3])),"cadfactd" )
-         aF[5] := .t.
-      EndIf
-   EndIf
-   If (nL --) > 1
-      aRes := MyReadRow( hRes )
-      AEVAL( aRes, {| xV,nP | aRes[nP] := MyClReadCol( hRes,nP ) },3 )
-   EndIf
-   If nL == 0 .OR. aF[1] # aRes[1]
-      If oApl:oFac:INDICADOR # "A" .AND. aF[5]
-         oApl:Tipo := aF[2]
-         ContaVta( ::oMvc,::oMvd,.f.,::aCta )
-      EndIf
-      oApl:oFac:Seek( { "empresa",oApl:nEmpresa,"numfac",aRes[1],"tipo",aRes[2]} )
-      aF   := { aRes[1],aRes[2],aRes[3],NtChr( oApl:oFac:FECHOY,"1" ),.f. }
-   EndIf
-EndDo
-   MSFreeResult( hRes )
-*/
-/* 2
-If ::aPrv[3] .AND. oApl:oPag:FORMAPAGO <= 4
-   If Login( "Desea Anular este Pago" )
-      If oApl:oPag:PAGADO # 0 .AND. oApl:oFac:INDICADOR # "A"
-         oApl:oFac:INDICADOR := "P" ; oApl:oFac:FECHACAN := CTOD("")
-         oApl:oFac:Update(.f.,1)
-         oApl:cPer := NtChr( oApl:oPag:FECPAG,"1" )
-         oApl:lFam := SaldoFac( oApl:oPag:NUMFAC )
-         GrabaSal( oApl:oPag:NUMFAC,1,-oApl:oPag:PAGADO )
-         oApl:cPer := NtChr( oApl:dFec,"1" )
-      EndIf
-      oApl:oPag:Delete(.f.,1)
-      oLbp:Refresh() ; oLbf:Refresh()
-   EndIf
-EndIf
-*/
 RETURN NIL
 
 //------------------------------------//
@@ -1250,8 +1192,12 @@ If ::aM[2] > 0
       EndIf
       oApl:lFam := SaldoFac( ::aM[2] )
       GrabaSal( ::aM[2],1,oApl:nSaldo )
-      oApl:oFac:INDICADOR:= "C"
-      oApl:oFac:FECHACAN := oApl:oFac:FECHOY
+      If oApl:Tipo == "A"
+         oApl:oFac:INDICADOR:= "P"
+      Else
+         oApl:oFac:INDICADOR:= "C"
+         oApl:oFac:FECHACAN := oApl:oFac:FECHOY
+      EndIf
    EndIf
    If !oApl:oFac:EFECTIVO
       If (oApl:lFam := SaldoFac( ::aM[2] ))

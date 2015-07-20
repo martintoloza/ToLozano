@@ -19,7 +19,8 @@ oLF:aLS := { DATE(),DATE(),0,SPACE(10),1,oApl:nTFor,.t.,0,"" }
  aLS := { { {|| oLF:ListoArt() },"Listado de Compras" }  ,;
           { {|| oLF:ListoRes() },"Compras de un Código" },;
           { {|| oLF:ListoRes( 3 ) },"Resumen de Ventas" },;
-          { {|| oLF:ListoPro() },"Resumen de Compras por Proveedor" } }
+          { {|| oLF:ListoPro() },"Resumen de Compras por Proveedor" },; 
+          {"Sin Resumen","Con Resumen","Retenciones","Resumen Retencion"} }
 oAr := TInv()  ; oAr:New()
 oNi := TNits() ; oNi:New()
 oNi:oDb:Seek( { "codigo",oLF:aLS[8] } )
@@ -51,7 +52,7 @@ DEFINE DIALOG oDlg TITLE aLS[nOpc,2] FROM 0, 0 TO 14,60
       ACTION EVAL({|| If(oAr:Mostrar(), (oLF:aLS[4] := oAr:oDb:CODIGO,;
                          oGet[6]:Refresh() ), )})
    @ 62, 00 SAY "Resumen por Dia" OF oDlg RIGHT PIXEL SIZE 80,10
-   @ 62, 82 COMBOBOX oGet[7] VAR oLF:aLS[5] ITEMS {"Sin Resumen","Con Resumen","Retenciones"};
+   @ 62, 82 COMBOBOX oGet[7] VAR oLF:aLS[5] ITEMS aLS[5];
       SIZE 48,90 OF oDlg PIXEL
    @ 74, 00 SAY "TIPO DE IMPRESORA"    OF oDlg RIGHT PIXEL SIZE 80,10
    @ 74, 82 COMBOBOX oGet[8] VAR oLF:aLS[6] ITEMS { "Matriz","Laser" };
@@ -170,15 +171,23 @@ Else
                " AND c.fecingre <= " + xValToChar( ::aLS[2] )   +;
                " GROUP BY c.ingreso ORDER BY c.fecingre"
    ElseIf hRes == 6
-      cTit := "SELECT n.codigo, n.digito, n.nombre, c.ingreso, "+;
-                     "c.totalfac, d.orden, d.valor "            +;
+      If ::aLS[5] == 3
+         ::aLS[9] := ""
+         cTit := "SELECT n.codigo, n.digito, n.nombre, c.ingreso ING, "+;
+                        "c.totalfac, d.orden, d.valor "            +;
+      Else
+         ::aLS[9] := " GROUP BY n.codigo"
+         cTit := "SELECT n.codigo, n.digito, n.nombre, c.row_id ING, " +;
+                        "c.totalfac, d.orden, SUM(d.valor) "       +;
+      EndIf
+      cTit := cTit +;
               "FROM cadartic c LEFT JOIN cadclien n USING( codigo_nit ) " +;
                               "LEFT JOIN comprasd d "                     +;
                  "ON c.row_id    = d.comprasc_id AND d.orden IN(4, 6, 7, 8) "+;
               "WHERE c.empresa   = " + LTRIM(STR(oApl:nEmpresa))+;
                " AND c.fecingre >= " + xValToChar( ::aLS[1] )  +;
                " AND c.fecingre <= " + xValToChar( ::aLS[2] )  +;
-               " AND c.totalfac  > 0 ORDER BY n.codigo, c.ingreso"
+               " AND c.totalfac  > 0"+ ::aLS[9] + " ORDER BY n.codigo, ING"
    EndIf
    hRes := If( MSQuery( oApl:oMySql:hConnect,cTit ) ,;
                MSStoreResult( oApl:oMySql:hConnect ), 0 )
@@ -188,7 +197,7 @@ RETURN hRes
 //------------------------------------//
 METHOD ListoArt() CLASS TLCompra
    LOCAL aRes, aMon, hRes, nL, oRpt
-If ::aLS[5] == 3
+If ::aLS[5] >= 3
    ::ListoRet()
    RETURN NIL
 EndIf

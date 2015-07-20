@@ -15,7 +15,8 @@ cOpc:= If( nOpc == 3, "RESUMEN POR CODIGO [S/N]", "DIFERENCIAS EN PRECIOS [S/N]"
 aVT := { { {|| oA:ListoVen() },"Listar Ventas Diarias" }  ,;
          { {|| oA:ListoCar() },"Listo Resumen Diario" }   ,;
          { {|| oA:ListoRes() },"Listo Ventas con Codigo" },;
-         { {|| oA:ListoTIZ() },"Listo Resumen Diario" },"" }
+         { {|| oA:ListoTIZ() },"Listo Resumen Diario" },"",;
+         {"Sin Resumen","Con Resumen","Retenciones","Resumen Retencion","Utilidad"} }
 DEFINE DIALOG oDlg TITLE aVT[nOpc,2] FROM 0, 0 TO 19,50
    @ 02, 00 SAY "FECHA INICIAL [DD.MM.AA]" OF oDlg RIGHT PIXEL SIZE 86,10
    @ 02, 88 GET oGet[1] VAR oA:aLS[1] OF oDlg  SIZE 40,10 PIXEL
@@ -28,7 +29,7 @@ DEFINE DIALOG oDlg TITLE aVT[nOpc,2] FROM 0, 0 TO 19,50
 //    VALID If( oA:aLS[3] $ "NSU", .t., .f. ) ;
 //    WHEN nOpc #  4         SIZE 08,10 PIXEL
    @ 26, 00 SAY "DESEA UN RESUMEN" OF oDlg RIGHT PIXEL SIZE 86,10
-   @ 26,88 COMBOBOX oGet[3] VAR oA:aLS[3] ITEMS {"Sin Resumen","Con Resumen","Retenciones","Utilidad"};
+   @ 26,88 COMBOBOX oGet[3] VAR oA:aLS[3] ITEMS aVT[6];
       SIZE 48,90 OF oDlg PIXEL  WHEN nOpc #  4
    @ 38, 00 SAY cOpc                       OF oDlg RIGHT PIXEL SIZE 86,10
    @ 38, 88 GET oGet[4] VAR oA:aLS[4] OF oDlg PICTURE "!";
@@ -223,8 +224,17 @@ Else
                " AND fecha   <= " + xValToChar( ::aLS[2] )     +;
                " AND estado <> 2 GROUP BY banco"
    ElseIf hRes == 10
-      cTit := "SELECT n.codigo, n.digito, n.nombre, c.numfac, c.tipo, "    +;
-                    "c.totalfac, c.totaliva, c.retfte, c.retiva, c.retica "+;
+      If ::aLS[03] == 3
+         ::aLS[10] := ""
+         cTit := "SELECT n.codigo, n.digito, n.nombre, c.numfac FAC, c.tipo, "    +;
+                       "c.totalfac, c.totaliva, c.retfte, c.retiva, c.retica "+;
+      Else
+         ::aLS[10] := " GROUP BY n.codigo"
+         cTit := "SELECT n.codigo, n.digito, n.nombre, 0 FAC, '" + ::aTF[::aLS[6]]+;
+                  "' SUM(c.totalfac), SUM(c.totaliva), SUM(c.retfte), " +; 
+                    "SUM(c.retiva)  , SUM(c.retica) "
+      EndIf
+      cTit := cTit                                              +;
               "FROM cadfactc c LEFT JOIN cadclien n "           +;
                "USING( codigo_nit ) "                           +;
               "WHERE c.empresa = " + LTRIM(STR(oApl:nEmpresa))  +;
@@ -233,7 +243,7 @@ Else
                " AND c.tipo   = '" + ::aTF[::aLS[6]] + "'", "" )+;
                " AND c.indicador <> 'A'"                        +;
                " AND (c.retfte > 0 OR c.retiva > 0 OR c.retica > 0)"+;
-               " ORDER BY n.codigo, c.numfac"
+               ::aLS[10] + " ORDER BY n.codigo, FAC"
    EndIf
    hRes := If( MSQuery( oApl:oMySql:hConnect,cTit ) ,;
                MSStoreResult( oApl:oMySql:hConnect ), 0 )
@@ -243,11 +253,10 @@ RETURN hRes
 //------------------------------------//
 METHOD ListoVen() CLASS TLived
    LOCAL aGT, aVT, aFF, aRes, bTL, cQry, hRes, nL, nK, oRpt
-//If ::aLS[3] == "N"
-If ::aLS[3] == 3
+If ::aLS[3] == 3 .OR. ::aLS[3] == 4
    ::ListoRet()
    RETURN NIL
-ElseIf ::aLS[3] == 4
+ElseIf ::aLS[3] == 5
    ::ListoUti()
    RETURN NIL
 ElseIf ::aLS[4] == "S"
@@ -1398,7 +1407,7 @@ While nL > 0
    If nL == 0 .OR. ::aMV[1] # aRes[1]
       ::aMV[06] := ::aMV[4] - ::aMV[5]
       ::aMV[11] := ROUND( (::aMV[6] / ::aMV[5]) * 100,2 )
-      ::aLS[07] := If( ::aLS[3] # 4, .t., If( ::aMV[06] < 0, .t., .f. ) )
+      ::aLS[07] := If( ::aLS[3] # 5, .t., If( ::aMV[06] < 0, .t., .f. ) )
       If ::aLS[9] == 1 .AND. ::aLS[7]
          oRpt:Titulo( 118 )
          oRpt:Say( oRpt:nL, 01,::aMV[1] )
