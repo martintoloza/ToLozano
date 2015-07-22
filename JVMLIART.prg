@@ -174,11 +174,11 @@ Else
       If ::aLS[5] == 3
          ::aLS[9] := ""
          cTit := "SELECT n.codigo, n.digito, n.nombre, c.ingreso ING, "+;
-                        "c.totalfac, d.orden, d.valor "            +;
+                        "c.totalfac, d.orden, d.valor "
       Else
-         ::aLS[9] := " GROUP BY n.codigo"
+         ::aLS[9] := " GROUP BY n.codigo, d.orden"
          cTit := "SELECT n.codigo, n.digito, n.nombre, c.row_id ING, " +;
-                        "c.totalfac, d.orden, SUM(d.valor) "       +;
+                        "c.totalfac, d.orden, SUM(d.valor) "
       EndIf
       cTit := cTit +;
               "FROM cadartic c LEFT JOIN cadclien n USING( codigo_nit ) " +;

@@ -581,7 +581,7 @@ Case nPos == 8           // Precio Neto
    ::aV[nA,14] := mGetVar
 EndCase
 If Rango( nPos,1,8 )
-   nCanti     := ::aV[nA,04] * If( nCanti == NIL .OR. nCanti == 0, 1, nCanti+1 )
+   nCanti     := ::aV[nA,04] * If( nCanti == NIL .OR. nCanti == 0, 1, nCanti )
    nSubTot    := ROUND( ::aV[nA,14] * nCanti,0 )
    ::aV[nA,7] := If( nPos == 7, mGetVar, If( ::aV[nA,06] = 0, ::aV[nA,07],;
                      ROUND( nSubTot * ::aV[nA,6] / 100,0 ) ) )

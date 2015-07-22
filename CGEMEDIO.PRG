@@ -249,15 +249,9 @@ While !::oMgd:Eof()
       aRes := STRTRAN( aRes,"[CTAF]",XTRIM(::oMgd:CUENTAF,8,"9") )
       hRes := If( MSQuery( oApl:oMySql:hConnect,aRes ) ,;
                   MSStoreResult( oApl:oMySql:hConnect ), 0 )
-<<<<<<< HEAD
-      MsgInfo( aRes )
+      //MsgInfo( aRes )
       nL   := MSNumRows( hRes )
       oApl:oWnd:SetMsg( STR(::oMgd:CONCEPTO)+STR(nL)+" Registros" )
-=======
-      nL   := MSNumRows( hRes )
-      oApl:oWnd:SetMsg( STR(::oMgd:CONCEPTO)+STR(nL)+" Registros" )
-      //MsgInfo( aRes,STR(::oMgd:FORMATO,5) )
->>>>>>> e3a11fbd741e5af4069c507f74d5a40ddc30e29b
       While nL > 0
          aRes := MyReadRow( hRes )
          AEVAL( aRes,{|xV,nP| aRes[nP] := MyClReadCol( hRes,nP ) } )

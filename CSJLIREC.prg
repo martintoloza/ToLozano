@@ -60,14 +60,14 @@ ENDCLASS
 //------------------------------------//
 METHOD NEW( cTit,hRes ) CLASS TLTurista
 If hRes == NIL
-   ::aGT[2] := Buscar( "SELECT COUNT(*) + CAST(SUM(amigos) AS UNSIGNED INTEGER) FROM cadfactc "+;
+   ::aGT[2] := Buscar( "SELECT CAST(SUM(amigos) AS UNSIGNED INTEGER) FROM cadfactc "+;
                        "WHERE empresa   = " + STR(oApl:nEmpresa)    +;
                         " AND fechacan >= " + xValToChar( ::aLS[1] )+;
                         " AND fechacan <= " + xValToChar( ::aLS[2] )+;
                         " AND tipo = 'A' AND indicador = 'C'","CM",,8,,4 )
    ::aGT[5] := ::aGT[3] + ::aGT[4]
    //En El Cabo
-   ::aGT[6] := Buscar( "SELECT COUNT(*) + CAST(SUM(amigos) AS UNSIGNED INTEGER) "+;
+   ::aGT[6] := Buscar( "SELECT CAST(SUM(amigos) AS UNSIGNED INTEGER) "+;
                        "FROM cadfactc c, cadfacte e "                            +;
                        "WHERE e.factc_id = c.row_id AND e.estado = 'P'","CM",,8,,4 )
 Else

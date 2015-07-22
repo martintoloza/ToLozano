@@ -227,7 +227,7 @@ Else
       If ::aLS[03] == 3
          ::aLS[10] := ""
          cTit := "SELECT n.codigo, n.digito, n.nombre, c.numfac FAC, c.tipo, "    +;
-                       "c.totalfac, c.totaliva, c.retfte, c.retiva, c.retica "+;
+                       "c.totalfac, c.totaliva, c.retfte, c.retiva, c.retica "
       Else
          ::aLS[10] := " GROUP BY n.codigo"
          cTit := "SELECT n.codigo, n.digito, n.nombre, 0 FAC, '" + ::aTF[::aLS[6]]+;
