@@ -321,10 +321,12 @@ Case cTabla == "cadfactm"
    aIndice := { { "Factura", {"empresa","numfac","tipo","anomes"} } }
 Case cTabla == "cadfactv"
    aStruct := "CREATE VIEW cadfactv AS "    +;
-              "SELECT c.cliente, DATE_FORMAT(e.fecha_ent,'%d.%m.%Y a las %h:%i %p') AS fecha, c.numfac "+;
-              "FROM cadfactc c, cadfacte e "+;
-              "WHERE c.row_id = e.factc_id "+;
-                "AND e.estado = 'P'"
+              "SELECT t.dociden, t.nombres, DATE_FORMAT(e.fecha_ent,'%d.%m.%Y a las %h:%i %p') AS fecha, c.numfac "+;
+              "FROM turista t, cadfactg g, cadfactc c, cadfacte e "+;
+              "WHERE t.turista_id = g.turista_id "+;
+                "AND g.factc_id   = c.row_id "    +;
+                "AND c.row_id     = e.factc_id "  +;
+                "AND e.estado     = 'P'""
 Case cTabla == "cadinveb"
    aStruct := { { "row_id"    , "N", 11, 00, " auto_increment PRIMARY KEY" },;
                 { "codbarra"  , "C", 15, 00, },;

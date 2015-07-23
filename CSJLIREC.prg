@@ -26,7 +26,7 @@ DEFINE DIALOG oDlg TITLE aLS[nOpc,2] FROM 0, 0 TO 11,60
    @ 14, 82 GET oGet[2] VAR oLF:aLS[2] OF oDlg SIZE 40,10 PIXEL;
       VALID oLF:aLS[2] >= oLF:aLS[1]
    @ 26, 00 SAY "Resumen por" OF oDlg RIGHT PIXEL SIZE 80,10
-   @ 26, 82 COMBOBOX oGet[3] VAR oLF:aLS[3] ITEMS {"Entradas","Salidas","En el Cabo"};
+   @ 26, 82 COMBOBOX oGet[3] VAR oLF:aLS[3] ITEMS {"Entradas","Salidas","En el Cabo","Migracion"};
       SIZE 48,90 OF oDlg PIXEL
    // WHEN nOpc == 2
    @ 38, 00 SAY "TIPO DE IMPRESORA"    OF oDlg RIGHT PIXEL SIZE 80,10
@@ -148,15 +148,15 @@ Else
               "WHERE e.estado  = 'P' "+;
               "ORDER BY FEC, FAC, CLA"
    ElseIf hRes == 5
-      cTit := "SELECT n.codigo, n.digito, n.nombre, c.ingreso, "+;
-                     "c.totalfac, d.orden, d.valor "            +;
-              "FROM cadartic c LEFT JOIN cadclien n USING( codigo_nit ) " +;
-                              "LEFT JOIN comprasd d "                     +;
-                 "ON c.row_id    = d.comprasc_id AND d.orden IN(4, 6, 7, 8) "+;
-              "WHERE c.empresa   = " + LTRIM(STR(oApl:nEmpresa))+;
-               " AND c.fecingre >= " + xValToChar( ::aLS[1] )  +;
-               " AND c.fecingre <= " + xValToChar( ::aLS[2] )  +;
-               " AND c.totalfac  > 0 ORDER BY n.codigo, c.ingreso"
+      cTit := "SELECT p.codigo, t.tipoiden, t.dociden, t.pri_ape, t.seg_ape, "+; 
+                        "CONCAT(t.pri_nom, ' ', t.seg_nom) NOM, "             +; 
+                          "CAST(e.fecha_sal AS DATE) AS fecha, t.fec_nacimi " +;
+              "FROM pais p, turista t, cadfactg g, cadfactc c, cadfacte e "   +;
+              "WHERE p.pais_id    = t.pais_id "   +;
+               " AND t.turista_id = g.turista_id "+;
+               " AND g.factc_id   = c.row_id "    +;
+               " AND c.row_id     = e.factc_id "  +;
+               " AND e.estado     = 'P'""
    EndIf
    hRes := If( MSQuery( oApl:oMySql:hConnect,cTit ) ,;
                MSStoreResult( oApl:oMySql:hConnect ), 0 )

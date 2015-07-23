@@ -32,7 +32,7 @@ METHOD NEW( nOpc ) CLASS TChq
  oBase := oApl:Abrir( ::aV[nOpc,1],::aV[nOpc,2],.t.,,100 )
 Super:New( oBase )
 If nOpc == 3
-   ::aOrden  := { {"Nombre",1},{"Fecha" ,2} }
+   ::aOrden  := { {"Dociden",1},{"Nombre" ,2} }
 Else
    ::aOrden  := { {"Nombre",7},{"Fecha" ,2},;
                   {"Banco" ,3},{"Cuenta",4} }
@@ -90,10 +90,10 @@ bHacer := {||lReturn := ::lBuscar := .t., oDlg:End()}
 nOrd   := ::Ordenar( 1 )
 
 DEFINE DIALOG oDlg FROM 3, 3 TO 22, 60 TITLE ::xVar
-   @ 1.5, 0 LISTBOX ::oLbx FIELDS ;
-                    ::oDb:CLIENTE , ::oDb:FECHA,;
+   @ 1.5, 0 LISTBOX ::oLbx FIELDS  ::oDb:DOCIDEN ,;
+                    ::oDb:NOMBRES, ::oDb:FECHA   ,;
                 STR(::oDb:NUMFAC) ;
-      HEADERS "Nombre", "Fecha"+CRLF+"Entrada",;
+      HEADERS "Documento ID", "Nombre", "Fecha"+CRLF+"Entrada",;
               "Nro."+CRLF+"Factura"            ;
       SIZES 400, 450 SIZE 220,107 ;
       OF oDlg UPDATE              ;
@@ -106,9 +106,9 @@ DEFINE DIALOG oDlg FROM 3, 3 TO 22, 60 TITLE ::xVar
     ::oLbx:nHeaderHeight := 28
     ::oLbx:GoTop()
     ::oLbx:oFont       := ::oFont
-    ::oLbx:aColSizes   := {200,130,60}
-    ::oLbx:aHjustify   := {2,2,2}
-    ::oLbx:aJustify    := {0,0,1}
+    ::oLbx:aColSizes   := {60,140,100,60}
+    ::oLbx:aHjustify   := {2,2,2,2}
+    ::oLbx:aJustify    := {1,0,0,1}
     ::oLbx:ladjbrowse  := ::oLbx:lCellStyle  := .f.
     ::oLbx:ladjlastcol := .t.
     ::oLbx:bKeyChar := {|nKey,nFlags| ::cBus := ::BuscaInc( nKey ), oDlg:Update() }
