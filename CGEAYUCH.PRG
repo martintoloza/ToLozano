@@ -27,7 +27,7 @@ METHOD NEW( nOpc ) CLASS TChq
    LOCAL oBase
  ::aV := { { "ingresov","nombre, fecha","R.de Caja" },;
            { "chequesv","nombre, fecha","Cheques"   },;
-           { "cadfactv","cliente, fecha","Pendientes" } }
+           { "cadfactv","nombres, fecha","Pendientes" } }
  //oBase := oApl:Abrir( "chequesv","empresa, banco, cta_cte" )
  oBase := oApl:Abrir( ::aV[nOpc,1],::aV[nOpc,2],.t.,,100 )
 Super:New( oBase )
@@ -89,13 +89,13 @@ METHOD Muestra() CLASS TChq
 bHacer := {||lReturn := ::lBuscar := .t., oDlg:End()}
 nOrd   := ::Ordenar( 1 )
 
-DEFINE DIALOG oDlg FROM 3, 3 TO 22, 60 TITLE ::xVar
+DEFINE DIALOG oDlg FROM 3, 3 TO 22, 70 TITLE ::xVar
    @ 1.5, 0 LISTBOX ::oLbx FIELDS  ::oDb:DOCIDEN ,;
                     ::oDb:NOMBRES, ::oDb:FECHA   ,;
                 STR(::oDb:NUMFAC) ;
       HEADERS "Documento ID", "Nombre", "Fecha"+CRLF+"Entrada",;
               "Nro."+CRLF+"Factura"            ;
-      SIZES 400, 450 SIZE 220,107 ;
+      SIZES 400, 450 SIZE 260,107 ;
       OF oDlg UPDATE              ;
       ON DBLCLICK EVAL(bHacer)
     ::oLbx:nClrBackHead  := oApl:nClrBackHead
@@ -106,9 +106,9 @@ DEFINE DIALOG oDlg FROM 3, 3 TO 22, 60 TITLE ::xVar
     ::oLbx:nHeaderHeight := 28
     ::oLbx:GoTop()
     ::oLbx:oFont       := ::oFont
-    ::oLbx:aColSizes   := {60,140,100,60}
+    ::oLbx:aColSizes   := {80,200,134,60}
     ::oLbx:aHjustify   := {2,2,2,2}
-    ::oLbx:aJustify    := {1,0,0,1}
+    ::oLbx:aJustify    := {0,0,0,1}
     ::oLbx:ladjbrowse  := ::oLbx:lCellStyle  := .f.
     ::oLbx:ladjlastcol := .t.
     ::oLbx:bKeyChar := {|nKey,nFlags| ::cBus := ::BuscaInc( nKey ), oDlg:Update() }

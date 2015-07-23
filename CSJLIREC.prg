@@ -55,6 +55,7 @@ CLASS TLTurista FROM TIMPRIME
  METHOD LaserRec( hRes,nL )
  METHOD ListoTur( nL )
  METHOD LaserTur( hRes,nL )
+ METHOD Migracion()
 ENDCLASS
 
 //------------------------------------//
@@ -102,40 +103,29 @@ Else
                                "INNER JOIN turista  u ON c.turista_id = u.turista_id " +;
               "GROUP BY c.numfac, g.row_id ORDER BY c.numfac, g.row_id"
 */
-      cTit := "SELECT c.numfac FAC, 'F' CLA, c.fechoy, c.totalfac, t.nombres TUR "    +;
-              "FROM cadfactc c LEFT JOIN turista  t ON c.turista_id = t.turista_id "  +;
-              "WHERE empresa    = " + STR(oApl:nEmpresa)    +;
-               " AND fechoy    >= " + xValToChar( ::aLS[1] )+;
-               " AND fechoy    <= " + xValToChar( ::aLS[2] )+;
-               " AND tipo       = 'A'"                      +;
-               " AND indicador <> 'A' "                     +;
-              "UNION ALL "                                  +;
-              "SELECT c.numfac FAC, 'G' CLA, c.fechoy, c.totalfac, t.nombres TUR "    +;
-              "FROM ((cadfactg g LEFT JOIN turista  t ON g.turista_id = t.turista_id)"+;
-                              " INNER JOIN cadfactc c ON c.row_id = g.factc_id) "     +;
-              "WHERE empresa    = " + STR(oApl:nEmpresa)    +;
-               " AND fechoy    >= " + xValToChar( ::aLS[1] )+;
-               " AND fechoy    <= " + xValToChar( ::aLS[2] )+;
-               " AND tipo       = 'A'"                      +;
-               " AND indicador <> 'A' ORDER BY FAC, CLA, TUR"
+      // Entradas
+      cTit := "SELECT c.numfac FAC, 'F' CLA, CAST(e.fecha_ent AS DATE) FEC, c.totalfac, t.nombres "+;
+              "FROM turista t, cadfactg g, cadfactc c, cadfacte e "+;
+              "WHERE t.turista_id = g.turista_id" +;
+               " AND g.factc_id   = c.row_id"     +;
+               " AND c.row_id     = e.factc_id"   +;
+               " AND CAST(e.fecha_ent AS DATE) >= " + xValToChar( ::aLS[1] )  +;
+               " AND CAST(e.fecha_ent AS DATE) <= " + xValToChar( ::aLS[2] )  +;
+              " ORDER BY FEC, FAC, t.nombres"
    ElseIf hRes == 3
-      cTit := "SELECT c.numfac FAC, 'F' CLA, c.fechacan, c.totalfac, t.nombres TUR "  +;
-              "FROM cadfactc c LEFT JOIN turista  t ON c.turista_id = t.turista_id "  +;
-              "WHERE empresa    = " + STR(oApl:nEmpresa)    +;
-               " AND fechacan  >= " + xValToChar( ::aLS[1] )+;
-               " AND fechacan  <= " + xValToChar( ::aLS[2] )+;
-               " AND tipo       = 'A'"                      +;
-               " AND indicador  = 'C' "                     +;
-              "UNION ALL "                                  +;
-              "SELECT c.numfac FAC, 'G' CLA, c.fechacan, c.totalfac, t.nombres TUR "  +;
-              "FROM ((cadfactg g LEFT JOIN turista  t ON g.turista_id = t.turista_id)"+;
-                              " INNER JOIN cadfactc c ON c.row_id = g.factc_id) "     +;
-              "WHERE empresa    = " + STR(oApl:nEmpresa)    +;
-               " AND fechacan  >= " + xValToChar( ::aLS[1] )+;
-               " AND fechacan  <= " + xValToChar( ::aLS[2] )+;
-               " AND tipo       = 'A'"                      +;
-               " AND indicador  = 'C' ORDER BY FAC, CLA, TUR"
+      // Salidas
+      cTit := "SELECT c.numfac FAC, 'F' CLA, CAST(e.fecha_sal AS DATE) FEC, c.totalfac, t.nombres "+;
+              "FROM turista t, cadfactg g, cadfactc c, cadfacte e "+;
+              "WHERE t.turista_id = g.turista_id" +;
+               " AND g.factc_id   = c.row_id"     +;
+               " AND c.row_id     = e.factc_id"   +;
+               " AND e.estado     = 'C'"          +;
+               " AND CAST(e.fecha_sal AS DATE) >= " + xValToChar( ::aLS[1] )  +;
+               " AND CAST(e.fecha_sal AS DATE) <= " + xValToChar( ::aLS[2] )  +;
+              " ORDER BY FEC, FAC"
    ElseIf hRes == 4
+      // En el Cabo
+   /*
       cTit := "SELECT c.numfac FAC, 'F' CLA, CAST(e.fecha_sal AS DATE) FEC, c.totalfac, t.nombres "+;
               "FROM ((cadfacte e INNER JOIN cadfactc c ON e.factc_id   = c.row_id) "    +;
                                 "INNER JOIN turista  t ON c.turista_id = t.turista_id) "+;
@@ -147,16 +137,40 @@ Else
                                 "INNER JOIN cadfactc c ON e.factc_id   = c.row_id) "    +;
               "WHERE e.estado  = 'P' "+;
               "ORDER BY FEC, FAC, CLA"
+   */
+      cTit := "SELECT c.numfac FAC, 'F' CLA, CAST(e.fecha_sal AS DATE) FEC, c.totalfac, t.nombres "+;
+              "FROM turista t, cadfactg g, cadfactc c, cadfacte e "+;
+              "WHERE t.turista_id = g.turista_id" +;
+               " AND g.factc_id   = c.row_id"     +;
+               " AND c.row_id     = e.factc_id"   +;
+               " AND e.estado     = 'P'"          +;
+              "ORDER BY FEC, FAC, CLA"
    ElseIf hRes == 5
-      cTit := "SELECT p.codigo, t.tipoiden, t.dociden, t.pri_ape, t.seg_ape, "+; 
-                        "CONCAT(t.pri_nom, ' ', t.seg_nom) NOM, "             +; 
+      cTit := "SELECT t.tipoiden, t.dociden, p.codigo, t.pri_ape, t.seg_ape, "+;
+                        "CONCAT(t.pri_nom, ' ', t.seg_nom) NOM, 'E', "        +;
+                          "CAST(e.fecha_ent AS DATE) AS fecha, t.fec_nacimi " +;
+              "FROM pais p, turista t, cadfactg g, cadfactc c, cadfacte e "   +;
+              "WHERE p.codigo    <> 'CO' "        +;
+               " AND p.pais_id    = t.pais_id "   +;
+               " AND t.turista_id = g.turista_id" +;
+               " AND g.factc_id   = c.row_id"     +;
+               " AND c.row_id     = e.factc_id"   +;
+               " AND CAST(e.fecha_ent AS DATE) >= " + xValToChar( ::aLS[1] )  +;
+               " AND CAST(e.fecha_ent AS DATE) <= " + xValToChar( ::aLS[2] )  +;
+              " UNION ALL "                       +;
+              "SELECT t.tipoiden, t.dociden, p.codigo, t.pri_ape, t.seg_ape, "+;
+                        "CONCAT(t.pri_nom, ' ', t.seg_nom) NOM, 'S', "        +;
                           "CAST(e.fecha_sal AS DATE) AS fecha, t.fec_nacimi " +;
               "FROM pais p, turista t, cadfactg g, cadfactc c, cadfacte e "   +;
-              "WHERE p.pais_id    = t.pais_id "   +;
-               " AND t.turista_id = g.turista_id "+;
-               " AND g.factc_id   = c.row_id "    +;
-               " AND c.row_id     = e.factc_id "  +;
-               " AND e.estado     = 'P'""
+              "WHERE p.codigo    <> 'CO' "        +;
+               " AND p.pais_id    = t.pais_id "   +;
+               " AND t.turista_id = g.turista_id" +;
+               " AND g.factc_id   = c.row_id"     +;
+               " AND c.row_id     = e.factc_id"   +;
+               " AND e.estado     = 'C'"          +;
+               " AND CAST(e.fecha_sal AS DATE) >= " + xValToChar( ::aLS[1] )  +;
+               " AND CAST(e.fecha_sal AS DATE) <= " + xValToChar( ::aLS[2] )  +;
+              " ORDER BY fecha"
    EndIf
    hRes := If( MSQuery( oApl:oMySql:hConnect,cTit ) ,;
                MSStoreResult( oApl:oMySql:hConnect ), 0 )
@@ -279,7 +293,10 @@ RETURN NIL
 //------------------------------------//
 METHOD ListoTur() CLASS TLTurista
    LOCAL aRes, hRes, nL, oRpt
-If ::aLS[3] == 1
+If ::aLS[3] == 4
+   ::Migracion()
+   RETURN NIL
+ElseIf ::aLS[3] == 1
    ::aLS[7] := "FEC.FACTURA"
    hRes := ::NEW( "Entradas de Turistas",2 )
 ElseIf ::aLS[3] == 2
@@ -363,4 +380,86 @@ MSFreeResult( hRes )
       UTILPRN ::oUtil Self:nLinea, 2.7 SAY "TURISTAS"
   ENDPAGE
  ::EndInit( .F. )
+RETURN NIL
+
+//------------------------------------//
+METHOD Migracion() CLASS TLTurista
+   LOCAL aRes, cQry, nF, nL, hRes, hTxt, oExcel
+  hRes := ::NEW( "Migracion",5 )
+If (nL := MSNumRows( hRes )) == 0
+   MsgInfo( "NO HAY INFORMACION PARA LISTAR" )
+   MSFreeResult( hRes )
+   RETURN NIL
+EndIf
+   ::aGT := { "",CHR(13) + CHR(10),"Migracion.txt" }
+                 //CRLF
+If ::aLS[5]
+   cQry := cFilePath( GetModuleFileName( GetInstance() )) + ::aGT[3]
+   FERASE(cQry)
+   hTxt := FCREATE(cQry,0) //, FC_NORMAL)
+   If FERROR() != 0
+      Msginfo(FERROR(),"No se pudo crear el archivo "+cQry )
+      RETURN NIL
+   EndIf
+   While nL > 0
+      aRes := MyReadRow( hRes )
+      AEVAL( aRes, { | xV,nP | aRes[nP] := MyClReadCol( hRes,nP ) } )
+      aRes[1] := If( aRes[1] == "PA", "3",;
+                 If( aRes[1] == "CE", "5",;
+                 If( aRes[1] == "LC", "9", "1" ) ) )
+      ::aGT[1] := "2226,47001,"      +                aRes[1]   + "," +;
+                  ALLTRIM( aRes[2] ) + "," + ALLTRIM( aRes[3] ) + "," +;
+                  ALLTRIM( aRes[4] ) + "," + ALLTRIM( aRes[5] ) + "," +;
+                  ALLTRIM( aRes[6] ) + "," +          aRes[7]   + "," + ;
+             MyDToMs(DTOS( aRes[8] ))+ ",47001,47001," + MyDToMs(DTOS( aRes[9] ))
+      FWRITE( hTxt,::aGT[1] + ::aGT[2] )
+      nL --
+   EndDo
+   If !FCLOSE(hTxt)
+      Msginfo(FERROR(),"Error cerrando el archivo "+cQry)
+   EndIf
+Else
+   ::aGT[3] := "Migracion.xls"
+   cQry := cFilePath( GetModuleFileName( GetInstance() )) + ::aGT[3]
+   oApl:oWnd:SetMsg( "Exportando hacia "+cQry )
+   oExcel := TExcelScript():New()
+   oExcel:Create( cQry )
+   oExcel:Font("Verdana")
+   oExcel:Visualizar(.F.)
+   nF := 0
+   While nL > 0
+      aRes := MyReadRow( hRes )
+      AEVAL( aRes, { | xV,nP | aRes[nP] := MyClReadCol( hRes,nP ) } )
+      aRes[1] := If( aRes[1] == "PA", 3,;
+                 If( aRes[1] == "CE", 5,;
+                 If( aRes[1] == "LC", 9, 1 ) ) )
+      nF ++
+      oExcel:Say( nF, 1,    2226 )
+      oExcel:Say( nF, 2,   47001 )
+      oExcel:Say( nF, 3, aRes[1] )
+      oExcel:Say( nF, 4, aRes[2],,,,,, 2,,,,, "Text" )
+      oExcel:Say( nF, 5, aRes[3],,,,,, 2,,,,, "Text" )
+      oExcel:Say( nF, 6, aRes[4],,,,,, 2,,,,, "Text" )
+      oExcel:Say( nF, 7, aRes[5],,,,,, 2,,,,, "Text" )
+      oExcel:Say( nF, 8, aRes[6],,,,,, 2,,,,, "Text" )
+      oExcel:Say( nF, 9, aRes[7],,,,,, 2,,,,, "Text" )
+      oExcel:Say( nF,10, aRes[8],,,,,, 2,,,,, "Text" )
+      oExcel:Say( nF,11,   47001 )
+      oExcel:Say( nF,12,   47001 )
+      oExcel:Say( nF,13, aRes[9],,,,,, 2,,,,, "Text" )
+      nL --
+   EndDo
+   oExcel:Borders("A1:M" + LTRIM(STR(nF)) ,,, 3 )
+   oExcel:ColumnWidth(  4, 14 )
+   oExcel:ColumnWidth( 10, 12 )
+   oExcel:ColumnWidth( 13, 12 )
+   oExcel:Save()
+   oExcel:End(.f.)
+   oExcel := NIL
+EndIf
+MSFreeResult( hRes )
+If (nF := RAT( "\", cQry )) > 0
+   cQry := LEFT( cQry,nF )
+EndIf
+  MsgStop( "Está en la Carpeta "+cQry,"El Archivo " + ::aGT[3] )
 RETURN NIL
