@@ -173,12 +173,12 @@ Else
    ElseIf hRes == 6
       If ::aLS[5] == 3
          ::aLS[9] := ""
-         cTit := "SELECT n.codigo, n.digito, n.nombre, c.ingreso ING, "+;
+         cTit := "SELECT n.codigo, n.digito, n.nombre, c.ingreso, "+;
                         "c.totalfac, d.orden, d.valor "
       Else
          ::aLS[9] := " GROUP BY n.codigo, d.orden"
-         cTit := "SELECT n.codigo, n.digito, n.nombre, c.row_id ING, " +;
-                        "c.totalfac, d.orden, SUM(d.valor) "
+         cTit := "SELECT n.codigo, n.digito, n.nombre, n.codigo, " +;
+                    "SUM(c.totalfac), d.orden, SUM(d.valor) "
       EndIf
       cTit := cTit +;
               "FROM cadartic c LEFT JOIN cadclien n USING( codigo_nit ) " +;
@@ -187,7 +187,7 @@ Else
               "WHERE c.empresa   = " + LTRIM(STR(oApl:nEmpresa))+;
                " AND c.fecingre >= " + xValToChar( ::aLS[1] )  +;
                " AND c.fecingre <= " + xValToChar( ::aLS[2] )  +;
-               " AND c.totalfac  > 0"+ ::aLS[9] + " ORDER BY n.codigo, ING"
+               " AND c.totalfac  > 0"+ ::aLS[9] + " ORDER BY n.codigo"
    EndIf
    hRes := If( MSQuery( oApl:oMySql:hConnect,cTit ) ,;
                MSStoreResult( oApl:oMySql:hConnect ), 0 )
@@ -644,6 +644,7 @@ While nL > 0
       oRpt:Titulo( 125 )
       If ::aEX[11]  # aGT[1]
          ::aEX[11] := aGT[1]
+         aGT[4] := If( ::aLS[5] == 4, 0, aGT[4] )
          oRpt:Say( oRpt:nL, 00,FormatoNit(aGT[1],aGT[2]) )
          oRpt:Say( oRpt:nL, 16,aGT[3] )
       EndIf
@@ -702,6 +703,7 @@ While nL > 0
       ::Cabecera( .t.,0.41 )
       If ::aEX[11]  # aGT[1]
          ::aEX[11] := aGT[1]
+         aGT[4] := If( ::aLS[5] == 4, 0, aGT[4] )
          UTILPRN ::oUtil Self:nLinea, 2.5 SAY FormatoNit(aGT[1],aGT[2])   RIGHT
          UTILPRN ::oUtil Self:nLinea, 2.8 SAY aGT[3]
       EndIf

@@ -230,8 +230,8 @@ Else
                        "c.totalfac, c.totaliva, c.retfte, c.retiva, c.retica "
       Else
          ::aLS[10] := " GROUP BY n.codigo"
-         cTit := "SELECT n.codigo, n.digito, n.nombre, 0 FAC, '" + ::aTF[::aLS[6]]+;
-                  "' SUM(c.totalfac), SUM(c.totaliva), SUM(c.retfte), " +; 
+         cTit := "SELECT n.codigo, n.digito, n.nombre, 1 FAC, '" + ::aTF[::aLS[6]]+;
+                 "', SUM(c.totalfac), SUM(c.totaliva), SUM(c.retfte), " +;
                     "SUM(c.retiva)  , SUM(c.retica) "
       EndIf
       cTit := cTit                                              +;
@@ -831,7 +831,7 @@ While nL > 0
       oRpt:Say( oRpt:nL, 00,FormatoNit(aRes[1],aRes[2]) )
       oRpt:Say( oRpt:nL, 16,aRes[3] )
    EndIf
-   oRpt:Say( oRpt:nL, 53,STR(aRes[4])+aRes[5] )
+   oRpt:Say( oRpt:nL, 53,STR(aRes[4],10,0)+aRes[5] )
    oRpt:Say( oRpt:nL, 67,TRANSFORM( aRes[06],"99,999,999" ))
    oRpt:Say( oRpt:nL, 79,TRANSFORM( aRes[07],"99,999,999" ))
    oRpt:Say( oRpt:nL, 91,TRANSFORM( aRes[08],"99,999,999" ))

@@ -498,7 +498,7 @@ If nFin == NIL
       nL --
    EndDo
    MSFreeResult( hRes )
-   aFor := ArrayCombo( "CPAGO" )
+   aFor := ArrayCombo( "CPAGO",1 )
    AEVAL( aFor, {|x| AADD( ::aCP, { TRIM(x[1])+"_",INT(VAL(x[2])) } ) } )
    aFor := ArrayCombo( "FPAGO" )
    AEVAL( aFor, {|x| AADD( ::aFP, { x[1],INT(VAL(x[2])) } ) } )
