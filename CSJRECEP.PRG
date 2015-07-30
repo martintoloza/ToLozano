@@ -295,7 +295,7 @@ CLASS TCotizar FROM TFactura
  METHOD Guardar( oDlg,oLbx )
  METHOD Estadia( nR )
  METHOD Borrar( oLbt,nCol,uVar )
- METHOD Facturar( oDlg,oLbx )
+ METHOD Facturar( oDlg,oLbx,aPG )
  METHOD Listado( oDlg,oLbx )
 
 ENDCLASS
@@ -372,8 +372,7 @@ DEFINE BUTTON ::oB[4] RESOURCE "NEW"       OF oBar NOBORDER ;
 DEFINE BUTTON ::oB[6] RESOURCE "MONEY"     OF oBar NOBORDER ;
    TOOLTIP "Check UP [F8]"  ;
    ACTION EVAL({|| If( ::oTP:Muestra(), (::aM[2] := ::oTP:oDb:NUMFAC,;
-                       ::Facturar( oDlg,oLbx ) ), ) } )
-//                     ::Facturar(), __Keyboard( CHR( VK_RETURN ) ) ), ) } )
+                       ::Facturar( oDlg,oLbx,::oTP:oDb:DOCIDEN ) ), ) } )
 DEFINE BUTTON ::oB[7] RESOURCE "MIRAR"     OF oBar NOBORDER ;
    TOOLTIP "Pagos a Cartera"     ;
    ACTION MsgInfo( "Dispobible para lo que SEA" )
@@ -490,31 +489,42 @@ RETURN NIL
 //------------------------------------//
 METHOD Estadia( nR ) CLASS TCotizar
    LOCAL sFec
-If LEN( ::aCli ) == 0
-   ::aCli := Buscar("SELECT DATE_FORMAT(NOW(),'%d.%m.%Y a las %h:%i %p'), "                  +;
-                    "DATE_FORMAT(DATE_ADD( NOW(), INTERVAL 1 DAY),'%d.%m.%Y a las %h:%i %p')"+;
-                    ", 'P' FROM dual","CM",,8 )
-EndIf
-If nR == 0
-   ::aCli[1] := NtChr( CTOD(LEFT(::aCli[1],10)),"2" ) + RIGHT(::aCli[1],15)
-   ::aCli[2] := NtChr( CTOD(LEFT(::aCli[2],10)),"2" ) + RIGHT(::aCli[2],15)
-ElseIf nR == 1
-   oApl:oFac:FECHAENT := oApl:oFac:FECHOY + oApl:oFac:PAGINAS
-   sFec := Buscar( "SELECT DATE_FORMAT(DATE_ADD( NOW(), INTERVAL"+ STR(oApl:oFac:PAGINAS,3) +;
-                   " DAY),'%d.%m.%Y a las %h:%i %p') FROM dual","CM",,8 )
-   ::aCli[2] := NtChr( CTOD(LEFT(sFec,10)),"2" ) + RIGHT(sFec,15)
-EndIf
+If nR # NIL
+   If LEN( ::aCli ) == 0
+      ::aCli := Buscar("SELECT DATE_FORMAT(NOW(),'%d.%m.%Y a las %h:%i %p'), "                  +;
+                       "DATE_FORMAT(DATE_ADD( NOW(), INTERVAL 1 DAY),'%d.%m.%Y a las %h:%i %p')"+;
+                       ", 'P' FROM dual","CM",,8 )
+   EndIf
+   If nR == 0
+      ::aCli[1] := NtChr( CTOD(LEFT(::aCli[1],10)),"2" ) + RIGHT(::aCli[1],15)
+      ::aCli[2] := NtChr( CTOD(LEFT(::aCli[2],10)),"2" ) + RIGHT(::aCli[2],15)
+   ElseIf nR == 1
+      oApl:oFac:FECHAENT := oApl:oFac:FECHOY + oApl:oFac:PAGINAS
+      sFec := Buscar( "SELECT DATE_FORMAT(DATE_ADD( NOW(), INTERVAL"+ STR(oApl:oFac:PAGINAS,3) +;
+                      " DAY),'%d.%m.%Y a las %h:%i %p') FROM dual","CM",,8 )
+      ::aCli[2] := NtChr( CTOD(LEFT(sFec,10)),"2" ) + RIGHT(sFec,15)
+   EndIf
 
-//cQry := "SELECT TIMESTAMPDIFF( day, e.fecha_ent, NOW() ) "+;
-//cQry := "SELECT TIMESTAMPDIFF( day, CAST(e.fecha_ent AS DATE), CURDATE() ) "+;
-If ::aCli[3] == "P"
-   ::nDias := Buscar( "SELECT DATEDIFF( CURDATE(), CAST(fecha_sal AS DATE) ) "+;
-                      "FROM cadfacte WHERE factc_id = " + LTRIM(STR(oApl:oFac:ROW_ID)),"CM",,8,,4 )
-   If ::nDias > 0
-      oApl:nSaldo := (::aM[6] / oApl:oFac:PAGINAS) * ::nDias
-      ::aM[7]     := "Debe" + STR(::nDias,4) + " Noches"
+   //cQry := "SELECT TIMESTAMPDIFF( day, e.fecha_ent, NOW() ) "+;
+   //cQry := "SELECT TIMESTAMPDIFF( day, CAST(e.fecha_ent AS DATE), CURDATE() ) "+;
+   If ::aCli[3] == "P"
+      ::nDias := Buscar( "SELECT DATEDIFF( CURDATE(), CAST(fecha_sal AS DATE) ) FROM cadfacte "+;
+                         "WHERE factc_id = " + LTRIM(STR(oApl:oFac:ROW_ID)),"CM",,8,,4 )
+      If ::nDias > 0
+         oApl:nSaldo := (::aM[6] / oApl:oFac:PAGINAS) * ::nDias
+         ::aM[7]     := "Debe" + STR(::nDias,4) + " Noches"
+      EndIf
    EndIf
 EndIf
+::nTAlta := Buscar( "SELECT 1 FROM temporada WHERE " + xValToChar(oApl:oFac:FECHOY) +;
+                    " BETWEEN fecha_d AND fecha_a","CM",,8,,4 )
+/*
+If ::nTAlta == 1
+   MsgInfo( "Pase ")
+Else
+   MsgInfo( ::nTAlta,VALTYPE(::nTAlta) )
+EndIf
+*/
 RETURN NIL
 
 //------------------------------------//
@@ -533,71 +543,95 @@ EndIf
 RETURN NIL
 
 //------------------------------------//
-METHOD Facturar( oDlg,oLbx ) CLASS TCotizar
-   LOCAL aPG, oDlp, oLbs, oGet := ARRAY(15)
+METHOD Facturar( oDlg,oLbx,aPG ) CLASS TCotizar
+   LOCAL oDlp, oLbs, oLbt, oGet := ARRAY(15)
 oApl:oFac:Seek( {"empresa",oApl:nEmpresa,"numfac",::aM[2],"tipo",oApl:Tipo} )
  ::AdicArray()
- aPG := { .f.,1,oApl:nSaldo,"" }
-DEFINE DIALOG oDlp FROM 0, 0 TO 290, 580 PIXEL;
+ ::aM[3] := aPG
+ aPG := { .f.,1,oApl:nSaldo,"",;
+          ASCAN( ::aCom, { |x| x[1] == ::aM[3] } ) }
+DEFINE DIALOG oDlp FROM 0, 0 TO 370, 580 PIXEL;
    TITLE "CHECK OUT"
    @ 02, 00 SAY "Nro. Factura" OF oDlp RIGHT PIXEL SIZE 50,10
    @ 02, 52 SAY oGet[1] VAR ::aM[2] OF oDlp  PICTURE "9999999999";
       BORDER PIXEL SIZE 40,10
+   @ 02,150 SAY "Fecha Llegada"          OF oDlp RIGHT  PIXEL SIZE 50,10
+   @ 02,202 SAY oGet[2] VAR ::aCli[1]    OF oDlp BORDER PIXEL SIZE 76,10
    @ 14, 00 SAY "Documento ID" OF oDlp RIGHT PIXEL SIZE 50,10
-   @ 14, 52 SAY oGet[2] VAR ::aM[3]      OF oDlp BORDER PIXEL SIZE 60,10
-   @ 14,114 SAY oGet[3] VAR oApl:oFac:CLIENTE OF oDlp BORDER PIXEL ;
-      SIZE 162,10 COLOR nRGB( 128,0,255 )
-   @ 26, 00 SAY "Fecha Llegada"          OF oDlp RIGHT  PIXEL SIZE 50,10
-   @ 26, 52 SAY oGet[4] VAR ::aCli[1]    OF oDlp BORDER PIXEL SIZE 76,10 UPDATE
-   @ 26,194 SAY "No. de Noches"          OF oDlp RIGHT  PIXEL SIZE 40,10
-   @ 26,236 SAY oGet[5] VAR oApl:oFac:PAGINAS OF oDlp PICTURE "99";
-      BORDER PIXEL SIZE 20,10
-   @ 26,258 SAY oGet[6] VAR oApl:oFac:NOCHE_EXT OF oDlp PICTURE "999";
-      BORDER PIXEL SIZE 20,10
-   @ 38, 00 SAY "Fecha Salida"           OF oDlp RIGHT  PIXEL SIZE 50,10
-   @ 38, 52 SAY oGet[7] VAR ::aCli[2]    OF oDlp BORDER PIXEL SIZE 76,10
-   @ 38,182 SAY "Valor Factura"          OF oDlp RIGHT  PIXEL SIZE 50,10
-   @ 38,236 SAY oGet[9] VAR ::aM[6]      OF oDlp PICTURE "999,999,999";
+   @ 14, 52 SAY oGet[3] VAR ::aM[3]      OF oDlp BORDER PIXEL SIZE 50,10
+   @ 14,150 SAY "Fecha Salida"           OF oDlp RIGHT  PIXEL SIZE 50,10
+   @ 14,202 SAY oGet[4] VAR ::aCli[2]    OF oDlp BORDER PIXEL SIZE 76,10
+   @ 26,182 SAY "Valor Factura"          OF oDlp RIGHT  PIXEL SIZE 50,10
+   @ 26,236 SAY oGet[5] VAR ::aM[6]      OF oDlp PICTURE "999,999,999";
       BORDER PIXEL SIZE 42,10
-   @ 50,122 SAY oGet[8] VAR ::aM[7]      OF oDlp COLOR nRGB( 255,0,0 );
-      BORDER PIXEL SIZE 70,10
-   @ 50,194 SAY "Saldo"                  OF oDlp RIGHT PIXEL SIZE 40,10
-   @ 50,236 SAY oGet[10] VAR oApl:nSaldo OF oDlp PICTURE "999,999,999";
-      BORDER PIXEL SIZE 42,10
-   @ 62, 00 SAY "Noches a Renovar"       OF oDlp RIGHT  PIXEL SIZE 50,10
-   @ 62, 52 GET oGet[11] VAR ::nDias     OF oDlp PICTURE "99";
+   @ 38, 20 SAY "No. de Noches"          OF oDlp RIGHT  PIXEL SIZE 50,10
+   @ 38, 72 SAY oGet[6] VAR oApl:oFac:PAGINAS OF oDlp PICTURE "99";
+      BORDER PIXEL SIZE 20,10
+   @ 38, 94 SAY oGet[7] VAR oApl:oFac:NOCHE_EXT OF oDlp PICTURE "999";
+      BORDER PIXEL SIZE 20,10
+   @ 38,170 SAY oGet[8] VAR ::aM[7]      OF oDlp COLOR nRGB( 255,0,0 );
+      BORDER PIXEL SIZE 64,10
+   @ 38,236 SAY oGet[09] VAR oApl:nSaldo OF oDlp PICTURE "999,999,999";
+      BORDER PIXEL SIZE 42,10 COLOR nRGB( 255,0,128 )
+   @ 50, 20 SAY "Noches a Renovar"       OF oDlp RIGHT  PIXEL SIZE 50,10
+   @ 50, 72 GET oGet[10] VAR ::nDias     OF oDlp PICTURE "99";
       VALID( If( ::nDias >= 0,;
                ( aPG[3] := (::aM[6] / oApl:oFac:PAGINAS) * ::nDias,;
-                 oGet[13]:REFRESH(), .t. ) ,;
+                 oGet[12]:REFRESH(), .t. ) ,;
                ( MsgStop( "Nro. de Noches debe ser mayor de 0" ), .f. ) ));
       SIZE 20,10 PIXEL
-   @ 62, 80 SAY "Opción Pagos"           OF oDlp RIGHT PIXEL SIZE 40,10
-   @ 62,122 COMBOBOX oGet[12] VAR aPG[2] ITEMS {"Renovar","Salida","Salida sin Pagar"};
+   @ 50,100 SAY "Opción Pagos"           OF oDlp RIGHT PIXEL SIZE 40,10
+   @ 50,142 COMBOBOX oGet[11] VAR aPG[2] ITEMS {"Renovar","Salida","Salida sin Pagar"};
       SIZE 48,90 OF oDlp PIXEL
-
-   @ 62,194 SAY "Total a Pagar"          OF oDlp RIGHT PIXEL SIZE 40,10
-   @ 62,236 SAY oGet[13] VAR aPG[3]      OF oDlp PICTURE "999,999,999";
+   @ 50,194 SAY "Total a Pagar"          OF oDlp RIGHT PIXEL SIZE 40,10
+   @ 50,236 SAY oGet[12] VAR aPG[3]      OF oDlp PICTURE "999,999,999";
       BORDER PIXEL SIZE 42,10 UPDATE
 
-   @ 76,200 BUTTON oGet[14] PROMPT "Grabar Pago"  SIZE 44,12 OF oDlp ;
+   @ 64,200 BUTTON oGet[13] PROMPT "Grabar Pago"  SIZE 44,12 OF oDlp ;
       ACTION ( If( MsgYesNo( "Graba este Pago" ), (aPG[1] := .t., oDlp:End()),;
-                 ( oGet[14]:oJump := oGet[11], oGet[11]:SetFocus()) ) ) PIXEL
-   @ 92,200 BUTTON oGet[15] PROMPT "Cancelar" SIZE 44,12 OF oDlp CANCEL;
+                 ( oGet[13]:oJump := oGet[10], oGet[10]:SetFocus()) ) ) PIXEL
+   @ 80,200 BUTTON oGet[14] PROMPT "Cancelar" SIZE 44,12 OF oDlp CANCEL;
       ACTION oDlp:End() PIXEL
+   @ 112,170 SAY oGet[15] VAR oApl:oFac:AMIGOS OF oDlp PICTURE "999";
+      BORDER PIXEL SIZE 20,10
+   ACTIVAGET( oGet )
 
-   @ 76, 10 LISTBOX oLbs FIELDS "", "", "";
+   @ 64, 10 LISTBOX oLbt FIELDS "", "";
+      HEADERS "Documento ID", "Nombre";
+      SIZE 150, 60      ;
+      FIELDSIZES 80, 150;
+      OF oDlp PIXEL
+    oLbt:nClrBackHead  := oApl:nClrBackHead
+    oLbt:nClrForeHead  := oApl:nClrForeHead
+    oLbt:SetColor(oApl:nClrFore,oApl:nClrBack)
+    oLbt:nClrBackFocus := oApl:nClrBackFocus
+    oLbt:nClrForeFocus := oApl:nClrForeFocus
+    oLbt:nHeaderHeight := 14
+    oLbt:nLineStyle:= 2
+    oLbt:nClrLine  := nRgb(184,196,224)
+    oLbt:aHjustify := {2,2}
+    oLbt:aJustify  := {0,0}
+    oLbt:nAt       := aPG[5]
+    oLbt:bLine     := {|| { ::aCom[oLbt:nAt,1],::aCom[oLbt:nAt,2] } }
+    oLbt:bGoTop    := {|| oLbt:nAt := 1 }
+    oLbt:bGoBottom := {|| oLbt:nAt := EVAL( oLbt:bLogicLen ) }
+    oLbt:bSkip     := {|nWant,nOld| nOld := oLbt:nAt, oLbt:nAt += nWant,;
+                        oLbt:nAt := MAX( 1, MIN( oLbt:nAt, EVAL( oLbt:bLogicLen ) ) ),;
+                        oLbt:nAt - nOld }
+    oLbt:bLogicLen := {|| LEN( ::aCom ) }
+    oLbt:cAlias    := "Array"
+
+   @ 126, 10 LISTBOX oLbs FIELDS "", "", "";
       HEADERS "Nombre Servicio", "No. de"+CRLF+"Noches", "Precio"+CRLF+"Neto" ;
-      SIZE 180, 66          ;
+      SIZE 180, 52          ;
       FIELDSIZES 200, 50, 60;
-      OF oDlp PIXEL         ;
-      ON DBLCLICK MsgInfo( "Array row: " + STR( oLbs:nAt ) + CRLF + ;
-                           "Array col: " + STR( oLbs:nAtCol( nCol ) ) )
-    oLbs:nClrBackHead := oApl:nClrBackHead
+      OF oDlp PIXEL
+    oLbs:nClrBackHead  := oApl:nClrBackHead
+    oLbs:nHeaderHeight := 28
     oLbs:nLineStyle:= 2
     oLbs:nClrLine  := nRgb(184,196,224)
-    oLbs:nHeaderHeight := 28
-    oLbs:aHjustify   := {2,2,2}
-    oLbs:aJustify    := {0,1,1}
+    oLbs:aHjustify := {2,2,2}
+    oLbs:aJustify  := {0,1,1}
     oLbs:nAt       := 1
     oLbs:bLine     := { || { ::aV[oLbs:nAt,2],;
                   TRANSFORM( ::aV[oLbs:nAt,4],  "9,999"),;
@@ -609,8 +643,9 @@ DEFINE DIALOG oDlp FROM 0, 0 TO 290, 580 PIXEL;
                         oLbs:nAt - nOld }
     oLbs:bLogicLen := {|| LEN( ::aV ) }
     oLbs:cAlias    := "Array"
-
-   ACTIVAGET( oGet )
+   If !aPG[1]
+      oGet[10]:SetFocus()
+   EndIf
 ACTIVATE DIALOG oDlp CENTERED
 If aPG[1]
    If aPG[2] == 1

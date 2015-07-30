@@ -279,6 +279,7 @@ CLASS TFactura FROM TNits
  DATA aVen AS ARRAY INIT { {" ",0} }
  DATA cVende        INIT " "
  DATA lNuevo        INIT .t.
+ DATA nTAlta        INIT 0
  DATA oG            INIT ARRAY(14)
  DATA aCta, aPrv, aV, aUM, cTipo, lCierre, nSigFac, nOptica
  DATA oMvc, oMvd, oVen

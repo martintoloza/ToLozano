@@ -275,7 +275,7 @@ FUNCTION ActuaINF( aCta,aDet,aDes )
 */
 FOR nE := 1 TO LEN( aDet )
    If VALTYPE( aDet[nE] ) == "N" .AND. nE # 6
-      aDet[nE] := LTRIM(STR(aDet[nE]))
+      aDet[nE] := LTRIM(STR(aDet[nE],10,0))
    EndIf
 NEXT nE
 FOR nE := 1 TO LEN( aCta )

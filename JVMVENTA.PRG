@@ -57,7 +57,8 @@ DEFINE DIALOG oDlg RESOURCE "FACTURAS" TITLE cTit + oApl:cEmpresa OF oApl:oWnd
                           oF:oG[4]:Refresh() ), ) })                 ;
       VALID EVAL( {|| If( oNi:Buscar( oF:aM[3],,.t. )               ,;
                  (oApl:oFac:CODIGO_NIT := oNi:oDb:CODIGO_NIT        ,;
-                  oApl:oFac:CLIENTE    := oF:aM[4] := oNi:oDb:NOMBRE,;
+                  oApl:oFac:CLIENTE    := LEFT( oNi:oDb:NOMBRE,35 ) ,;
+                  oF:aM[04] := oApl:oFac:CLIENTE                    ,;
                   oF:aM[21] := oF:FechaDev( "RETEN" )               ,;
                   oDlg:Update(), .t. )                              ,;
               (If( MsgYesNo("Desea ingresarlo","Este Nit no Existe"),;
