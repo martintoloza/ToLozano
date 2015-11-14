@@ -52,7 +52,8 @@ DEFINE DIALOG oDlg TITLE aCge[1] + oApl:cEmpresa;
       VALID EVAL( {|| If( oM:oBan:Seek( {"empresa",oApl:nEmpresa     ,;
                                          "banco"  ,oM:oIng:BANCO     ,;
                                          "cta_cte",oM:oIng:CTA_CTE} ),;
-                        ( oDlg:Update(), .t. )                       ,;
+                        ( oM:aCta[1,1] := oM:oBan:CUENTA             ,;
+                          oDlg:Update(), .t. )                       ,;
                         ( MsgStop("Está Cuenta NO EXISTE"), .f. ) ) });
       SIZE 30,10 PIXEL UPDATE
    @ 40,160 SAY "CONSECUTIVO" + STR(oM:oIng:CONTROL,7) OF oDlg PIXEL SIZE 80,10 UPDATE
@@ -241,7 +242,8 @@ DEFINE DIALOG oDlg TITLE aCge[1] + oApl:cEmpresa;
                                        oLbx:Refresh(), oDlg:Update(), oGet[2]:SetFocus()),;
                             If(GetKeyState(VK_CONTROL) .AND. nKey=78 .OR. nKey=VK_INSERT, oM:Detalle( oDlg,oLbx,.t. ),;
                             If(GetKeyState(VK_CONTROL) .AND. nKey=69 .OR. nKey=VK_RETURN, oM:Detalle( oDlg,oLbx,.f. ),;
-                            If(GetKeyState(VK_CONTROL) .AND. nKey=VK_DELETE, oM:BorraDeta( oDlg,oLbx ),) ))) }
+                            If(GetKeyState(VK_CONTROL) .AND. nKey=70 .OR. nKey=102, oM:NEW( 70,oGet ) ,;
+                            If(GetKeyState(VK_CONTROL) .AND. nKey=VK_DELETE, oM:BorraDeta( oDlg,oLbx ),) )))) }
    MySetBrowse( oLbx,oM:oMvd )
 ACTIVATE DIALOG oDlg CENTERED ;
    ON INIT ( oM:Barra( oDlg,oLbx ), oM:Filtrar() )
@@ -425,7 +427,7 @@ DEFINE DIALOG oDlg TITLE aCge[1] + oApl:cEmpresa;
 
 ACTIVATE DIALOG oDlg CENTERED
 If aCge[3]
-   nBan    := oM:Listado( 1 )
+   nBan    := oM:Listado( nBan )
    oM:oBan:Seek( {"empresa",oApl:nEmpresa,"banco",oM:aBan[nBan,2]} )
    oM:aCar := { { LTRIM(STR(oApl:oFac:NUMFAC))+oApl:Tipo,oM:aTP[8] } }
    oM:aMov[10]       := aCge[2]
@@ -465,7 +467,7 @@ CLASS TIngre FROM TMov
  DATA nSgte   INIT oApl:oEmp:INGRESO + 1
  DATA aCar, nTP, oAyu, oBan, oIng, oSay
 
- METHOD NEW() Constructor
+ METHOD NEW( nFin,oGet ) Constructor
  METHOD BuscarMov()
  METHOD Fechas( lOK,nMsg )
  METHOD BuscarCta( lNew )
@@ -481,7 +483,7 @@ CLASS TIngre FROM TMov
 ENDCLASS
 
 //------------------------------------//
-METHOD NEW( nFin ) CLASS TIngre
+METHOD NEW( nFin,oGet ) CLASS TIngre
    LOCAL aFor, hRes, nL
 If nFin == NIL
    Super:NEW( 1 )
@@ -510,6 +512,14 @@ If nFin == NIL
    ::oIng:Seek( {"empresa",oApl:nEmpresa,"comprobant",::aMov[3],"tipo",::cTipo} )
    ::oFte:oDb:Seek( {"fuente",::aMov[2]} )
    oApl:oEmp:XLoad()
+ElseIf nFin == 70
+   //Activar Cambio de Fecha
+   If ::oIng:ESTADO == 1
+      MsgStop( STR(::aMov[3]),"Pase" )
+      ::oIng:ESTADO := 0
+      oGet[8]:Refresh()
+      oGet[2]:SetFocus()
+   EndIf
 Else
    ::oFte:Cerrar()
    ::oPuc:Cerrar()
@@ -525,9 +535,13 @@ RETURN NIL
 //------------------------------------//
 METHOD BuscarMov() CLASS TIngre
    LOCAL nBan
-If !::oIng:Seek( {"empresa",oApl:nEmpresa,"comprobant",::aMov[3],"tipo",::cTipo} )
+If ::oIng:Seek( {"empresa",oApl:nEmpresa,"comprobant",::aMov[3],"tipo",::cTipo} )
+   ::oBan:Seek( {"empresa",oApl:nEmpresa,"banco",::oIng:BANCO,"cta_cte",::oIng:CTA_CTE} )
+   ::aCta[1,1] := ::oBan:CUENTA
+Else
    ::oIng:FECHA := DATE()
    ::oIng:FORMAPAGO := 1
+   ::oBan:Seek( {"empresa",oApl:nEmpresa,"banco",::aBan[1,2]} )
 EndIf
 ::BuscarCta( .f. )
 ::Fechas( .f. )
@@ -540,7 +554,6 @@ EndIf
 ::aMov[14] := 1
 nBan := ArrayValor( ::aBan,::oIng:BANCO,,.t. )
 
-::oBan:Seek( {"empresa",oApl:nEmpresa,"banco",::aBan[nBan,2]} )
 ::oMvc:Seek( {"empresa",oApl:nEmpresa,"ano_mes",::aMov[1],;
                "fuente",::aMov[2], "comprobant",::aMov[3]} )
 RETURN nBan
@@ -791,16 +804,16 @@ If ::oMvc:CONSECUTIV == 0
       ::Facturas( .f. )
    EndIf
    If oLbx # NIL
-      nJ := ::oBan:ROW_ID
+      //nJ := ::oBan:ROW_ID
       ::Listado( 1 )
-      ::oBan:Seek( {"row_id",nJ} )
+      //::oBan:Seek( {"row_id",nJ} )
    EndIf
    ::aMov[1] := oApl:cPer := NtChr( ::oIng:FECHA,"1" )
    ::aMov[4] := ""
    ::oMvc:FECHA    := ::oIng:FECHA
    ::oMvc:CODIGONIT:= ::oIng:CODIGONIT
    ::oMvc:VALORB   := ::nTP
-   aCta := { { ::oBan:CUENTA,::nTP - ::aTP[14] ,0,"",0,"" } }
+   aCta := { { ::aCta[1,1],::nTP - ::aTP[14] ,0,"",0,"" } }
    cNom := { ::aDF[3],::aDF[9],0,::aDF[6],::aDF[7],::aDF[8],0 }
    //        "RET","IVA","ICA","COM" }
       //AEVAL( <aMatriz> , <bBloque> , <nInicio>, <nPosiciones> )
@@ -901,6 +914,7 @@ If ::oMvc:CONSECUTIV == 0
       ::oMvd:CODIGO_NIT := cNom[9]
       ::oMvd:VALOR_DEB  := aCta[nJ,2]
       ::oMvd:VALOR_CRE  := aCta[nJ,3]
+      ::oMvd:LIBRO      := 1
       ::oMvd:PTAJE      := ::aMov[26]
       ::aTL[7] := cNom[9]
       ::Graba( .t.,1 )
@@ -1241,7 +1255,7 @@ Else
       If (::nTP - ::aTP[14]) == 0
          nBan := 2
       EndIf
-      ::oBan:Seek( {"empresa",oApl:nEmpresa,"banco",::aBan[2,2]} )
+    //::oBan:Seek( {"empresa",oApl:nEmpresa,"banco",::aBan[2,2]} )
       ::aTP[12] := ::oBan:CUENTA
       ::aTP[13] := ALLTRIM(::oBan:CTA_CTE)
       ::aTP[15] := ::oBan:CODIGO_NIT

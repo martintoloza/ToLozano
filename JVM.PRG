@@ -395,8 +395,8 @@ RETURN
 
 //------------------------------------//
 FUNCTION Login( cTit )
-   LOCAL oDlg, lLogin := .f., nInten := 0
-   LOCAL oGet := ARRAY(4), aLog := { oApl:cUser,SPACE(16) }
+   LOCAL oDlg, oGet := ARRAY(4)
+   LOCAL aLog := { oApl:cUser,SPACE(16),0,.f. }
    DEFAULT cTit := ""
 DEFINE DIALOG oDlg FROM 1, 2 TO 08, 40 TITLE cTit
    @ 02,  0 SAY "Usuario:"          OF oDlg RIGHT PIXEL SIZE  50,10
@@ -405,21 +405,21 @@ DEFINE DIALOG oDlg FROM 1, 2 TO 08, 40 TITLE cTit
    @ 16, 52 GET oGet[2] VAR aLog[2] OF oDlg       PIXEL SIZE  46,10 PASSWORD
 
    @ 32, 50 BUTTON oGet[3] PROMPT "&Ok"     OF oDlg SIZE 44,12 ACTION ;
-      ( nInten++, lLogin := Leer_Clave( aLog ),;
-       If( nInten > 3 .OR. lLogin, oDlg:End() ,;
-         ( MsgInfo("Clave Erronea","Error")   ,;
+      ( aLog[3]++, aLog[4] := Leer_Clave( aLog ),;
+       If( aLog[3] > 3 .OR. aLog[4], oDlg:End() ,;
+         ( MsgInfo( "Clave Erronea","Error" )   ,;
            oGet[3]:oJump := oGet[1], oGet[1]:SetFocus())) ) PIXEL
    @ 32,100 BUTTON oGet[4] PROMPT "&Cancel" OF oDlg SIZE 44,12 CANCEL ;
       ACTION oDlg:End() PIXEL
    ACTIVAGET(oGet)
 ACTIVATE DIALOG oDlg CENTERED
-RETURN lLogin
+RETURN aLog[4]
 
 //------------------------------------//
 FUNCTION Leer_Clave( aUsu )
    LOCAL hRes, cQry //:= MyPasswd( oApl:oMySql:hConnect )
-cQry := "SELECT Host FROM mysql.user WHERE User = " + xValToChar( aUsu[1] ) +;
-        " AND Password = OLD_PASSWORD(" + xValToChar( aUsu[2] ) +")"
+cQry := "SELECT host FROM mysql.user WHERE user = " + xValToChar( aUsu[1] ) +;
+        " AND password = OLD_PASSWORD(" + xValToChar( aUsu[2] ) +")"
 hRes := If( MSQuery( oApl:oMySql:hConnect,cQry ) ,;
             MSStoreResult( oApl:oMySql:hConnect ), 0 )
 RETURN ( MSNumRows( hRes ) != 0 )

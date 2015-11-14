@@ -232,8 +232,8 @@ DEFINE DIALOG oDlg TITLE aEd[1] FROM 0, 0 TO 366,570 PIXEL
       SIZE 50,99 OF oDlg ;
       VALID ( If( lNuevo .AND. ::oDb:TIPOCOD == 3,;
                 ( ::oDb:CODIGO := SgteNumero( "exterior",1,.f. ),;
-                  oGet[3]:Refresh(), .t. ), .t. ) ) PIXEL ;
-      WHEN lNuevo
+                  oGet[3]:Refresh(), .t. ), .t. ) ) PIXEL
+   //   WHEN lNuevo
    @  04,142 SAY "Código Nit" OF oDlg RIGHT PIXEL SIZE 48,10
    @  04,192 SAY oGet[2] VAR ::oDb:CODIGO_NIT OF oDlg ;
       PICTURE "99,999" SIZE 30,10 PIXEL
@@ -363,6 +363,8 @@ DEFINE DIALOG oDlg TITLE aEd[1] FROM 0, 0 TO 366,570 PIXEL
       oGet[23]:Disable()
       oGet[24]:Enable()
       oGet[24]:SetFocus()
+   ElseIf !lNuevo
+      oGet[3]:SetFocus()
    ENDIF
 ACTIVATE DIALOG oDlg CENTER ON INIT ( oGet[25]:Disable() )
 If aEd[2]

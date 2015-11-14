@@ -1655,7 +1655,8 @@ FOR nE := 1 TO LEN( aCta )
       oMvd:INFA      := aCta[nE,2]   ; oMvd:INFB     := aCta[nE,3]
       oMvd:INFC      := aCta[nE,4]   ; oMvd:INFD     := aCta[nE,5]
       oMvd:VALOR_DEB := aCta[nE,6]   ; oMvd:VALOR_CRE:= aCta[nE,7]
-      oMvd:CODIGO_NIT:= aCta[nE,8]   ; oMvd:PTAJE    := aCta[nE,9]
+      oMvd:CODIGO_NIT:= aCta[nE,8]   ; oMvd:LIBRO    := 1
+      oMvd:PTAJE     := aCta[nE,9]
       Acumular( oMvc:ESTADO,oMvd,2,2,!oMvd:lOK,.f. )
    EndIf
 NEXT nE
